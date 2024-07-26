@@ -12,6 +12,7 @@ import { scheduleDailyUpdates } from './services/dailyUpdateService';
 import smsWebhookRouter from './routes/smsWebhook';
 import dashboardRoutes from './routes/dashboard';
 import { getDashboardMetrics } from './controllers/dashboardController';
+import logger from './utils/logger';
 
 dotenv.config();
 
@@ -70,35 +71,31 @@ wss.on('connection', (ws) => {
 
 // Function to broadcast updates to a specific client or all clients
 const broadcastUpdate = async (ws?: WebSocket) => {
-  try {
-    const updatedContracts = await updatePrices();
-    const contractsWithChanges = await getContractsWithChanges();
-    const dashboardMetrics = await getDashboardMetrics();
-
-    const dataToSend = JSON.stringify({
-      contracts: contractsWithChanges,
-      dashboardMetrics: dashboardMetrics
-    });
-
-    if (ws) {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(dataToSend);
-      }
-    } else {
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(dataToSend);
-        }
+    try {
+      const updatedContracts = await updatePrices();
+      const contractsWithChanges = await getContractsWithChanges();
+      const dashboardMetrics = await getDashboardMetrics();
+  
+      const dataToSend = JSON.stringify({
+        contracts: contractsWithChanges,
+        dashboardMetrics: dashboardMetrics
       });
+  
+      if (ws) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(dataToSend);
+        }
+      } else {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(dataToSend);
+          }
+        });
+      }
+    } catch (error) {
+      logger.error('Error in broadcastUpdate:', error);
     }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Error in broadcastUpdate:', error.message);
-    } else {
-      console.error('Unknown error in broadcastUpdate');
-    }
-  }
-};
+  };
 
 // Update prices and broadcast every minute to all clients
 setInterval(() => broadcastUpdate(), 60000);

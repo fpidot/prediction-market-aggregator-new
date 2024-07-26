@@ -1,52 +1,46 @@
 import twilio from 'twilio';
+import SMS from '../models/SMS';
+import Subscriber from '../models/Subscriber';
+import logger from '../utils/logger';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-let client: twilio.Twilio | null = null;
+const client = twilio(accountSid, authToken);
 
-if (process.env.NODE_ENV !== 'test') {
-  console.log('Initializing Twilio client with:');
-  console.log('TWILIO_ACCOUNT_SID:', accountSid);
-  console.log('TWILIO_AUTH_TOKEN:', authToken ? 'Set' : 'Not set');
-  console.log('TWILIO_PHONE_NUMBER:', twilioPhoneNumber);
-
-  if (!accountSid || !authToken || !twilioPhoneNumber) {
-    console.error('Twilio credentials are missing. Please check your .env file.');
-    process.exit(1);
-  }
-
+export const sendSMS = async (to: string, body: string): Promise<void> => {
   try {
-    client = twilio(accountSid, authToken);
-    console.log('Twilio client initialized successfully');
-  } catch (error) {
-    console.error('Error initializing Twilio client:', error);
-    process.exit(1);
-  }
-}
-
-export const sendSMS = async (phoneNumber: string, message: string) => {
-  if (process.env.NODE_ENV === 'test') {
-    console.log(`Mock SMS sent to ${phoneNumber}: ${message}`);
-    return { sid: 'MOCK_SID' };
-  }
-
-  if (!client) {
-    console.error('Twilio client not initialized');
-    return;
-  }
-
-  try {
-    const result = await client.messages.create({
-      body: message,
+    const message = await client.messages.create({
+      body,
       from: twilioPhoneNumber,
-      to: phoneNumber
+      to,
     });
-    console.log(`Message sent successfully. SID: ${result.sid}`);
-    return result;
+    
+    // Save the sent SMS to the database
+    const newSMS = new SMS({
+      to,
+      body,
+      createdAt: new Date(),
+      twilioMessageId: message.sid
+    });
+    await newSMS.save();
+
+    // Update subscriber's lastAlertSent
+    await Subscriber.findOneAndUpdate(
+      { phoneNumber: to },
+      { 
+        $set: { 
+          lastAlertSent: new Date(),
+          status: 'subscribed'  // Assuming sending an SMS means they're subscribed
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    logger.info(`SMS sent to ${to}`);
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    logger.error('Error sending SMS:', error);
     throw error;
   }
 };

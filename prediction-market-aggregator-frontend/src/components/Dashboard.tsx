@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { fetchDashboardMetrics } from '../services/api';
 
@@ -13,6 +13,32 @@ const Dashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const connectWebSocket = useCallback(() => {
+    const ws = new WebSocket('ws://localhost:5000');
+
+    ws.onopen = () => console.log('WebSocket connected');
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.dashboardMetrics) {
+          setMetrics(data.dashboardMetrics);
+        }
+      } catch (err) {
+        console.error('Error parsing WebSocket data:', err);
+      }
+    };
+
+    ws.onerror = (error) => console.error('WebSocket error:', error);
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected. Attempting to reconnect...');
+      setTimeout(connectWebSocket, 3000);
+    };
+
+    return ws;
+  }, []);
+
   useEffect(() => {
     const loadMetrics = async () => {
       try {
@@ -26,31 +52,19 @@ const Dashboard: React.FC = () => {
     };
     loadMetrics();
 
-    // Set up WebSocket connection for real-time updates
-    const ws = new WebSocket('ws://localhost:5000');
-    ws.onopen = () => console.log('WebSocket connected');
-    ws.onmessage = (event) => {
-      try {
-        const updatedMetrics = JSON.parse(event.data);
-        setMetrics(updatedMetrics);
-      } catch (err) {
-        console.error('Error parsing WebSocket data:', err);
-      }
-    };
-    ws.onerror = (error) => console.error('WebSocket error:', error);
-    ws.onclose = () => console.log('WebSocket disconnected');
+    const ws = connectWebSocket();
 
     return () => {
       ws.close();
     };
-  }, []);
+  }, [connectWebSocket]);
 
   if (error) {
     return <div>Error: {error}</div>;
   }
 
   if (!metrics) {
-    return <div>Loading...</div>;
+    return <div>Loading dashboard metrics...</div>;
   }
 
   const subscriberData = [
