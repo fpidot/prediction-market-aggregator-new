@@ -1,7 +1,44 @@
 import { Request, Response } from 'express';
-import Contract from '../models/Contract';
-import Subscriber from '../models/Subscriber';
-import BigMoveThreshold from '../models/BigMoveThreshold';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { IAdminUser } from '../models/AdminUser';
+import { IContract } from '../models/Contract';
+import { ISubscriber } from '../models/Subscriber';
+import { IBigMoveThreshold } from '../models/BigMoveThreshold';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_EXPIRES_IN = '1h';
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await IAdminUser.findOne({ email });
+
+    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: admin._id, email: admin.email, role: 'admin' }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
+
+    res.json({ token, user: { id: admin._id, email: admin.email, role: 'admin' } });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const checkAuth = (req: Request, res: Response) => {
+  res.json({ isAuthenticated: true });
+};
+
+export const refreshToken = (req: Request, res: Response) => {
+  const user = req.user;
+  const token = jwt.sign({ id: user.id, email: user.email, role: 'admin' }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
+  res.json({ token });
+};
 
 export const getAllContracts = async (req: Request, res: Response) => {
   try {

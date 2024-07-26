@@ -21,7 +21,9 @@ const ThresholdSettings: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(updateThresholds(formData));
+    if (formData) {
+      dispatch(updateThresholds(formData));
+    }
   };
 
   return (

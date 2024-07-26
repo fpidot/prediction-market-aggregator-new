@@ -5,7 +5,10 @@ import * as authController from '../controllers/authController';
 
 const router = express.Router();
 
+// Admin Authentication
 router.post('/login', authController.login);
+router.get('/check-auth', adminAuth, adminController.checkAuth);
+router.post('/refresh-token', adminAuth, adminController.refreshToken);
 
 // Contracts
 router.get('/contracts', adminAuth, adminController.getAllContracts);
