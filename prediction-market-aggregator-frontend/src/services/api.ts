@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken } from './auth';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 console.log('API_BASE_URL in api.ts:', API_BASE_URL);
@@ -38,3 +39,29 @@ export const fetchDashboardMetrics = async () => {
     throw error;
   }
 };
+
+const instance = axios.create({
+  baseURL: API_BASE_URL, // adjust this as needed
+});
+
+instance.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const get = (url: string) => instance.get(url);
+export const post = (url: string, data: any) => instance.post(url, data);
+export const put = (url: string, data: any) => instance.put(url, data);
+export const del = (url: string) => instance.delete(url);
+
+const api = {
+  get,
+  post,
+  put,
+  del
+};
+
+export default api;
