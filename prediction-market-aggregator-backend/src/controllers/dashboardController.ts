@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import SMS from '../models/SMS';
-import Subscriber from '../models/Subscriber';
+import { Subscriber } from '../models/Subscriber';
 import logger from '../utils/logger';
 
 export const getSMSLogs = async (req: Request, res: Response) => {

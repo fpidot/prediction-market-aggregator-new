@@ -1,8 +1,8 @@
 process.env.NODE_ENV = 'test';
 
 import { checkForBigMoves } from '../../services/bigMoveAlertService';
-import Contract from '../../models/Contract';
-import Subscriber from '../../models/Subscriber';
+import { Contract } from '../../models/Contract';
+import { Subscriber } from '../../models/Subscriber';
 import { sendSMS } from '../../services/smsService';
 
 jest.mock('../../models/Contract');

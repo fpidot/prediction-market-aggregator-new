@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import Subscriber from '../models/Subscriber';
-import Contract from '../models/Contract';
+import { Subscriber } from '../models/Subscriber';
+import { Contract } from '../models/Contract';
 import { sendSMS } from './smsService';
 
 export async function generateDailyUpdate(): Promise<string> {

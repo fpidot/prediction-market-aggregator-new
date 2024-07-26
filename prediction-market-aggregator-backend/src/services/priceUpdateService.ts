@@ -1,4 +1,4 @@
-import Contract from '../models/Contract';
+import { Contract } from '../models/Contract';
 import { checkForBigMoves } from './bigMoveAlertService';
 
 interface VersionError extends Error {

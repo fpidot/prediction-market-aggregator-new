@@ -1,5 +1,5 @@
 import { handleSmsCommand } from '../../services/smsCommandService';
-import Subscriber from '../../models/Subscriber';
+import { Subscriber } from '../../models/Subscriber';
 
 jest.mock('../../models/Subscriber');
 

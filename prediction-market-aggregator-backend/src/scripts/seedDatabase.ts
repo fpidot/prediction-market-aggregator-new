@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Contract from '../models/Contract';
+import { Contract } from '../models/Contract';
 
 dotenv.config();
 

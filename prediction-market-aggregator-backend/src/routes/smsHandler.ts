@@ -1,6 +1,6 @@
 import express from 'express';
 import twilio from 'twilio';
-import Subscriber from '../models/Subscriber';
+import { Subscriber } from '../models/Subscriber';
 import { sendSMS } from '../services/smsService';
 
 const router = express.Router();

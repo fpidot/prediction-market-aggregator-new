@@ -1,6 +1,6 @@
 import express from 'express';
 import { sendSMS } from '../services/smsService';
-import Subscriber from '../models/Subscriber';
+import { Subscriber } from '../models/Subscriber';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import Contract from '../models/Contract';
+import { Contract } from '../models/Contract';
 import { getContractsWithChanges } from '../services/priceUpdateService';
 
 const router = express.Router();

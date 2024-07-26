@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
 export interface IContract extends Document {
   name: string;
@@ -16,7 +16,7 @@ export interface IContract extends Document {
   displayOutcomes: number;
 }
 
-const ContractSchema: Schema = new Schema({
+const ContractSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
   category: { type: String, required: true },

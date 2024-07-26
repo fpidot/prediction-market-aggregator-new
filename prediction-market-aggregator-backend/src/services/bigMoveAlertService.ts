@@ -1,5 +1,5 @@
-import Contract from '../models/Contract';
-import Subscriber from '../models/Subscriber';
+import { Contract } from '../models/Contract';
+import { Subscriber } from '../models/Subscriber';
 import { sendSMS } from './smsService';
 
 const BIG_MOVE_THRESHOLD = 0.1; // 10% change

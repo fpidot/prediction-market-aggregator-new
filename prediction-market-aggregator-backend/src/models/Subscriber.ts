@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
 export interface ISubscriber extends Document {
   phoneNumber: string;

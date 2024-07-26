@@ -1,6 +1,6 @@
 import twilio from 'twilio';
 import SMS from '../models/SMS';
-import Subscriber from '../models/Subscriber';
+import { Subscriber } from '../models/Subscriber';
 import logger from '../utils/logger';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
