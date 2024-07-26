@@ -1,0 +1,14 @@
+{
+    "name": "prediction-market-aggregator",
+    "version": "1.0.0",
+    "description": "Prediction Market Aggregator full-stack application",
+    "scripts": {
+      "start:frontend": "cd prediction-market-aggregator-frontend && npm start",
+      "start:backend": "cd prediction-market-aggregator-backend && npm run dev",
+      "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+      "install:all": "npm install && cd prediction-market-aggregator-frontend && npm install && cd ../prediction-market-aggregator-backend && npm install"
+    },
+    "devDependencies": {
+      "concurrently": "^6.2.0"
+    }
+  }
