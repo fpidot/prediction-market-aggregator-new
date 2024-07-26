@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISubscriber extends Document {
   phoneNumber: string;
+  isActive: boolean;
   status: 'pending' | 'subscribed' | 'paused' | 'stopped';
   categories: string[];
   alertTypes: ('daily' | 'bigMove')[];
@@ -9,8 +10,9 @@ export interface ISubscriber extends Document {
   lastAlertSent?: Date;
 }
 
-const SubscriberSchema: Schema = new Schema({
-  phoneNumber: { type: String, required: true, unique: true },
+const SubscriberSchema = new mongoose.Schema({
+    phoneNumber: { type: String, required: true, unique: true },
+    isActive: { type: Boolean, default: true },
   status: { type: String, enum: ['pending', 'subscribed', 'paused', 'stopped'], default: 'pending' },
   categories: [{ type: String }],
   alertTypes: [{ type: String, enum: ['daily', 'bigMove'] }],
@@ -18,4 +20,4 @@ const SubscriberSchema: Schema = new Schema({
   confirmationCode: { type: String }
 });
 
-export default mongoose.model<ISubscriber>('Subscriber', SubscriberSchema);
+export const Subscriber: Model<ISubscriber> = mongoose.model<ISubscriber>('Subscriber', SubscriberSchema);

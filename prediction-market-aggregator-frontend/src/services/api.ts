@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-console.log('API_BASE_URL in api.ts:', API_BASE_URL);
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -15,42 +14,32 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-export const fetchContracts = async () => {
-  try {
-    const response = await axiosInstance.get('/contracts');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching contracts:', error);
-    throw error;
-  }
-};
-
-export const subscribeUser = async (phoneNumber: string, categories: string[], alertTypes: string[]) => {
-  const url = `/subscription/subscribe`;
-  console.log('Sending subscription request to:', API_BASE_URL + url);
-  const response = await axiosInstance.post(url, { phoneNumber, categories, alertTypes });
+const get = async (url: string) => {
+  const response = await axiosInstance.get(url);
   return response.data;
 };
 
-export const confirmSubscription = async (phoneNumber: string, confirmationCode: string) => {
-  const response = await axiosInstance.post('/subscription/confirm', { phoneNumber, confirmationCode });
+const post = async (url: string, data: any) => {
+  const response = await axiosInstance.post(url, data);
   return response.data;
-};  
-
-export const fetchDashboardMetrics = async () => {
-  try {
-    const response = await axiosInstance.get('/dashboard/metrics');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching dashboard metrics:', error);
-    throw error;
-  }
 };
 
-export const get = (url: string) => axiosInstance.get(url);
-export const post = (url: string, data: any) => axiosInstance.post(url, data);
-export const put = (url: string, data: any) => axiosInstance.put(url, data);
-export const del = (url: string) => axiosInstance.delete(url);
+const put = async (url: string, data: any) => {
+  const response = await axiosInstance.put(url, data);
+  return response.data;
+};
+
+const del = async (url: string) => {
+  const response = await axiosInstance.delete(url);
+  return response.data;
+};
+
+export const fetchContracts = () => get('/contracts');
+export const subscribeUser = (phoneNumber: string, categories: string[], alertTypes: string[]) => 
+  post('/subscription/subscribe', { phoneNumber, categories, alertTypes });
+export const confirmSubscription = (phoneNumber: string, confirmationCode: string) => 
+  post('/subscription/confirm', { phoneNumber, confirmationCode });
+export const fetchDashboardMetrics = () => get('/dashboard/metrics');
 
 const api = {
   get,

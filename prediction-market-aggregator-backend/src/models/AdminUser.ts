@@ -1,20 +1,21 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 export interface IAdminUser extends Document {
-  username: string;
+  email: string;
   password: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-const AdminUserSchema: Schema = new Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
+const AdminUserSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 });
 
-AdminUserSchema.pre<IAdminUser>('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+AdminUserSchema.pre('save', async function(next) {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
   next();
 });
 
@@ -22,4 +23,4 @@ AdminUserSchema.methods.comparePassword = async function(candidatePassword: stri
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model<IAdminUser>('AdminUser', AdminUserSchema);
+export const AdminUser: Model<IAdminUser> = mongoose.model<IAdminUser>('AdminUser', AdminUserSchema);

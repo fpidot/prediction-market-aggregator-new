@@ -32,4 +32,5 @@ const ContractSchema: Schema = new Schema({
   displayOutcomes: { type: Number, default: 2 }
 });
 
-export default mongoose.model<IContract>('Contract', ContractSchema);
+
+export const Contract: Model<IContract> = mongoose.model<IContract>('Contract', ContractSchema);

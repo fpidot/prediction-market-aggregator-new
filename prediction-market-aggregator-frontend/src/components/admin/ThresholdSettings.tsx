@@ -1,62 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { fetchThresholds, updateThresholds } from '../../store/adminSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchThresholds, updateThresholds, Thresholds } from '../../store/adminSlice';
+import { RootState, AppDispatch } from '../../store';
 
 const ThresholdSettings: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const thresholds = useAppSelector((state) => state.admin.thresholds);
-  const [formData, setFormData] = useState(thresholds);
+  const dispatch = useDispatch<AppDispatch>();
+  const thresholds = useSelector((state: RootState) => state.admin.thresholds);
+  const [formData, setFormData] = useState<Thresholds>({
+    hourlyThreshold: 0,
+    dailyThreshold: 0,
+  });
 
   useEffect(() => {
     dispatch(fetchThresholds());
   }, [dispatch]);
 
   useEffect(() => {
-    setFormData(thresholds);
+    if (thresholds) {
+      setFormData(thresholds);
+    }
   }, [thresholds]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: parseFloat(e.target.value) });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: Number(value) }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData) {
-      dispatch(updateThresholds(formData));
-    }
+    dispatch(updateThresholds(formData));
   };
 
   return (
-    <div className="threshold-settings">
-      <h2>Big Move Thresholds</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="hourlyThreshold">Hourly Threshold (%)</label>
-          <input
-            type="number"
-            id="hourlyThreshold"
-            name="hourlyThreshold"
-            value={formData.hourlyThreshold}
-            onChange={handleChange}
-            step="0.1"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="dailyThreshold">Daily Threshold (%)</label>
-          <input
-            type="number"
-            id="dailyThreshold"
-            name="dailyThreshold"
-            value={formData.dailyThreshold}
-            onChange={handleChange}
-            step="0.1"
-            required
-          />
-        </div>
-        <button type="submit">Update Thresholds</button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="hourlyThreshold">Hourly Threshold:</label>
+        <input
+          type="number"
+          id="hourlyThreshold"
+          name="hourlyThreshold"
+          value={formData.hourlyThreshold}
+          onChange={handleInputChange}
+        />
+      </div>
+      <div>
+        <label htmlFor="dailyThreshold">Daily Threshold:</label>
+        <input
+          type="number"
+          id="dailyThreshold"
+          name="dailyThreshold"
+          value={formData.dailyThreshold}
+          onChange={handleInputChange}
+        />
+      </div>
+      <button type="submit">Update Thresholds</button>
+    </form>
   );
 };
 

@@ -1,43 +1,30 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import { AdminUser, IAdminUser } from '../models/AdminUser';
+import { Contract, IContract } from '../models/Contract';
+import { Subscriber, ISubscriber } from '../models/Subscriber';
+import { BigMoveThreshold, IBigMoveThreshold } from '../models/BigMoveThreshold';
 import bcrypt from 'bcrypt';
-import { IAdminUser } from '../models/AdminUser';
-import { IContract } from '../models/Contract';
-import { ISubscriber } from '../models/Subscriber';
-import { IBigMoveThreshold } from '../models/BigMoveThreshold';
+import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = '1h';
 
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    const admin = await IAdminUser.findOne({ email });
+    const admin = await AdminUser.findOne({ email });
 
-    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+    if (!admin || !(await admin.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const token = jwt.sign({ id: admin._id, email: admin.email, role: 'admin' }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
+      expiresIn: '1h',
     });
 
     res.json({ token, user: { id: admin._id, email: admin.email, role: 'admin' } });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
-};
-
-export const checkAuth = (req: Request, res: Response) => {
-  res.json({ isAuthenticated: true });
-};
-
-export const refreshToken = (req: Request, res: Response) => {
-  const user = req.user;
-  const token = jwt.sign({ id: user.id, email: user.email, role: 'admin' }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
-  res.json({ token });
 };
 
 export const getAllContracts = async (req: Request, res: Response) => {
@@ -52,10 +39,10 @@ export const getAllContracts = async (req: Request, res: Response) => {
 export const createContract = async (req: Request, res: Response) => {
   try {
     const newContract = new Contract(req.body);
-    await newContract.save();
-    res.status(201).json(newContract);
+    const savedContract = await newContract.save();
+    res.status(201).json(savedContract);
   } catch (error) {
-    res.status(400).json({ message: 'Error creating contract', error });
+    res.status(500).json({ message: 'Error creating contract', error });
   }
 };
 
@@ -67,7 +54,7 @@ export const updateContract = async (req: Request, res: Response) => {
     }
     res.json(updatedContract);
   } catch (error) {
-    res.status(400).json({ message: 'Error updating contract', error });
+    res.status(500).json({ message: 'Error updating contract', error });
   }
 };
 
@@ -100,7 +87,7 @@ export const updateSubscription = async (req: Request, res: Response) => {
     }
     res.json(updatedSubscription);
   } catch (error) {
-    res.status(400).json({ message: 'Error updating subscription', error });
+    res.status(500).json({ message: 'Error updating subscription', error });
   }
 };
 
@@ -118,6 +105,6 @@ export const updateThresholds = async (req: Request, res: Response) => {
     const updatedThresholds = await BigMoveThreshold.findOneAndUpdate({}, req.body, { new: true, upsert: true });
     res.json(updatedThresholds);
   } catch (error) {
-    res.status(400).json({ message: 'Error updating thresholds', error });
+    res.status(500).json({ message: 'Error updating thresholds', error });
   }
 };
