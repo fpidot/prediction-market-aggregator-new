@@ -1,4 +1,4 @@
-import Subscriber, { ISubscriber } from '../models/Subscriber';
+import { Subscriber, ISubscriber } from '../models/Subscriber';
 
 export async function handleSmsCommand(body: string, from: string): Promise<string> {
   const command = body.trim().toUpperCase();

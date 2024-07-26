@@ -1,5 +1,5 @@
 import { sendSMS } from './smsService';
-import Subscriber, { ISubscriber } from '../models/Subscriber';
+import { Subscriber, ISubscriber } from '../models/Subscriber';
 
 export const sendDailyUpdates = async () => {
   const subscribers = await Subscriber.find({ 

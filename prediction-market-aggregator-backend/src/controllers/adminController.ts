@@ -8,6 +8,16 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+export const checkAuth = (req: Request, res: Response) => {
+    res.json({ isAuthenticated: true });
+  };
+  
+  export const refreshToken = (req: Request, res: Response) => {
+    // Implement token refresh logic here
+    // For now, we'll just return a dummy token
+    res.json({ token: 'refreshed-token' });
+  };
+  
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
