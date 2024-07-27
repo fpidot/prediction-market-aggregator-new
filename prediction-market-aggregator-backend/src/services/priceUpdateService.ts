@@ -18,9 +18,9 @@ export async function updateContractPrices() {
       const priceChange = getRandomPriceChange();
       const newPrice = Math.max(0, Math.min(1, currentPrice + priceChange));
 
-      const percentageChange = Math.abs((newPrice - currentPrice) / currentPrice) * 100;
+      const percentageChange = ((newPrice - currentPrice) / currentPrice) * 100;
 
-      if (percentageChange >= 5) {
+      if (Math.abs(percentageChange) >= 5) {
         bigMoves.push({
           contractName: contract.name,
           oldPrice: currentPrice,
@@ -29,7 +29,6 @@ export async function updateContractPrices() {
         });
       }
 
-      // Calculate one hour and 24 hour changes
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const oneHourPrice = contract.priceHistory.find(ph => ph.timestamp >= oneHourAgo)?.price || currentPrice;
@@ -37,9 +36,8 @@ export async function updateContractPrices() {
       const oneHourChange = ((newPrice - oneHourPrice) / oneHourPrice) * 100;
       const twentyFourHourChange = ((newPrice - twentyFourHourPrice) / twentyFourHourPrice) * 100;
 
-      // Update the contract
-      await Contract.findByIdAndUpdate(
-        contract._id,
+      await Contract.updateOne(
+        { _id: contract._id },
         {
           $set: {
             currentPrice: newPrice,
@@ -50,21 +48,40 @@ export async function updateContractPrices() {
           $push: {
             priceHistory: {
               $each: [{ price: newPrice, timestamp: now }],
-              $slice: -100 // Keep only the last 100 entries
+              $slice: -100
             }
           }
-        },
-        { new: true }
+        }
       );
+
+      updatedContracts.push({
+        ...contract.toObject(),
+        currentPrice: newPrice,
+        oneHourChange: oneHourChange,
+        twentyFourHourChange: twentyFourHourChange,
+        lastUpdated: now,
+      });
     }
 
     if (bigMoves.length > 0) {
-      const subscribers = await Subscriber.find({ 
-        alertTypes: 'bigmove',
+      console.log('Big moves detected:', bigMoves);
+      const subscriberQuery = { 
+        alertTypes: { $in: ['bigmove', 'Big Move'] },
         isConfirmed: true,
-        isActive: true
-      });
+        status: 'subscribed'
+      };
+      console.log('Subscriber query:', subscriberQuery);
+      
+      const subscribers = await Subscriber.find(subscriberQuery);
       console.log('Subscribers for big move alert:', subscribers);
+      
+      if (subscribers.length === 0) {
+        console.log('No subscribers found matching the criteria');
+        // Log all subscribers to check their current state
+        const allSubscribers = await Subscriber.find();
+        console.log('All subscribers:', allSubscribers);
+      }
+
       for (const subscriber of subscribers) {
         const message = `Big moves detected:\n${bigMoves
           .map(
@@ -81,9 +98,12 @@ export async function updateContractPrices() {
           console.error(`Failed to send SMS to ${subscriber.phoneNumber}:`, error);
         }
       }
+    } else {
+      console.log('No big moves detected');
     }
 
-    console.log(`Updated prices for ${contracts.length} contracts`);
+    console.log(`Updated prices for ${updatedContracts.length} contracts`);
+    return updatedContracts;
   } catch (error) {
     console.error('Error updating contract prices:', error);
     throw error;
@@ -94,33 +114,4 @@ export async function schedulePriceUpdates(interval: number) {
   setInterval(async () => {
     await updateContractPrices();
   }, interval);
-}
-
-
-export async function sendDailyUpdate() {
-  try {
-    const contracts = await Contract.find().sort({ currentPrice: -1 }).limit(5);
-    const subscribers = await Subscriber.find({ 
-      alertTypes: 'dailyupdate'  // Changed from regex to exact match
-    });
-    console.log('Sending daily update to subscribers:', subscribers);
-
-    const message = `Daily Update:\nTop 5 Contracts:\n${contracts
-      .map((contract) => `${contract.name}: ${contract.currentPrice.toFixed(2)}`)
-      .join('\n')}`;
-
-    for (const subscriber of subscribers) {
-      console.log(`Attempting to send SMS to ${subscriber.phoneNumber}`);
-      try {
-        await sendSMS(subscriber.phoneNumber, message);
-        console.log(`Successfully sent SMS to ${subscriber.phoneNumber}`);
-      } catch (error) {
-        console.error(`Failed to send SMS to ${subscriber.phoneNumber}:`, error);
-      }
-    }
-
-    console.log('Daily update process completed');
-  } catch (error) {
-    console.error('Error in sendDailyUpdate:', error);
-  }
 }

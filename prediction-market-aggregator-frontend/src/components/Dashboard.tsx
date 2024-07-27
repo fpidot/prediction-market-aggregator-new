@@ -24,12 +24,12 @@ const Dashboard: React.FC = () => {
   const fetchDashboardMetrics = useCallback(async () => {
     try {
       const response = await api.get('/admin/dashboard-metrics');
+      console.log('Dashboard metrics response:', response.data);
       setMetrics(response.data);
     } catch (error) {
       console.error('Error fetching dashboard metrics:', error);
     }
   }, []);
-
 
   useEffect(() => {
     fetchDashboardMetrics();

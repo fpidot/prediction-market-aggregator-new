@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import contractRoutes from './routes/contracts';
 import subscriptionRoutes from './routes/subscription';
-import { updateContractPrices, schedulePriceUpdates, sendDailyUpdate } from './services/priceUpdateService';
+import { updateContractPrices, schedulePriceUpdates } from './services/priceUpdateService';
 import Contract from './models/Contract';
 
 const app = express();
@@ -40,20 +40,18 @@ const UPDATE_INTERVAL = 60000; // 1 minute
 schedulePriceUpdates(UPDATE_INTERVAL);
 
 setInterval(async () => {
-  const updatedContracts = await updateContractPrices();
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({ type: 'PRICE_UPDATE', contracts: updatedContracts }));
-    }
-  });
+  try {
+    const updatedContracts = await updateContractPrices();
+    console.log('Sending price updates to WebSocket clients');
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: 'PRICE_UPDATE', contracts: updatedContracts }));
+      }
+    });
+  } catch (error) {
+    console.error('Error updating prices:', error);
+  }
 }, UPDATE_INTERVAL);
-
-// Schedule daily update
-const DAILY_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
-setInterval(sendDailyUpdate, DAILY_UPDATE_INTERVAL);
-
-// Send initial daily update on server start
-sendDailyUpdate();
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

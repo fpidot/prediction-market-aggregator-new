@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { fetchContracts } from '../services/api';
 
+
 export interface Contract {
   _id: string;
   name: string;
