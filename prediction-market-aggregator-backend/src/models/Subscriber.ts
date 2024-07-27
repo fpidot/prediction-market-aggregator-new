@@ -1,23 +1,25 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISubscriber extends Document {
   phoneNumber: string;
-  isActive: boolean;
-  status: 'pending' | 'subscribed' | 'paused' | 'stopped';
+  status: 'subscribed' | 'unsubscribed';
   categories: string[];
-  alertTypes: ('daily' | 'bigMove')[];
-  confirmationCode?: string;
+  alertTypes: string[];
   lastAlertSent?: Date;
+  isActive: boolean;
+  confirmationCode?: string;
+  isConfirmed: boolean;
 }
 
-const SubscriberSchema = new mongoose.Schema({
-    phoneNumber: { type: String, required: true, unique: true },
-    isActive: { type: Boolean, default: true },
-  status: { type: String, enum: ['pending', 'subscribed', 'paused', 'stopped'], default: 'pending' },
+const SubscriberSchema: Schema = new Schema({
+  phoneNumber: { type: String, required: true, unique: true },
+  status: { type: String, enum: ['subscribed', 'unsubscribed'], default: 'subscribed' },
   categories: [{ type: String }],
-  alertTypes: [{ type: String, enum: ['daily', 'bigMove'] }],
+  alertTypes: [{ type: String }],
   lastAlertSent: { type: Date },
-  confirmationCode: { type: String }
+  isActive: { type: Boolean, default: true },
+  confirmationCode: { type: String },
+  isConfirmed: { type: Boolean, default: false }
 });
 
-export const Subscriber: Model<ISubscriber> = mongoose.model<ISubscriber>('Subscriber', SubscriberSchema);
+export const Subscriber = mongoose.model<ISubscriber>('Subscriber', SubscriberSchema);

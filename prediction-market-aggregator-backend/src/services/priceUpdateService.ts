@@ -37,14 +37,14 @@ export async function updateContractPrices() {
       const twentyFourHourChange = ((newPrice - twentyFourHourPrice) / twentyFourHourPrice) * 100;
 
       // Update the contract
-      await Contract.updateOne(
-        { _id: contract._id },
+      await Contract.findByIdAndUpdate(
+        contract._id,
         {
           $set: {
             currentPrice: newPrice,
-            lastUpdated: now,
             oneHourChange: oneHourChange,
-            twentyFourHourChange: twentyFourHourChange
+            twentyFourHourChange: twentyFourHourChange,
+            lastUpdated: now,
           },
           $push: {
             priceHistory: {
@@ -52,12 +52,15 @@ export async function updateContractPrices() {
               $slice: -100 // Keep only the last 100 entries
             }
           }
-        }
+        },
+        { new: true }
       );
     }
 
     if (bigMoves.length > 0) {
-      const subscribers = await Subscriber.find({ alertTypes: { $regex: /^bigmove$/i } });
+      const subscribers = await Subscriber.find({ 
+        alertTypes: 'bigmove'  // Changed from regex to exact match
+      });
       console.log('Subscribers for big move alert:', subscribers);
       for (const subscriber of subscribers) {
         const message = `Big moves detected:\n${bigMoves
@@ -73,14 +76,11 @@ export async function updateContractPrices() {
     }
 
     console.log(`Updated prices for ${contracts.length} contracts`);
-    return contracts;
   } catch (error) {
     console.error('Error updating contract prices:', error);
     throw error;
   }
 }
-
-// ... rest of the file remains the same
 
 export async function schedulePriceUpdates(interval: number) {
   setInterval(async () => {
@@ -88,11 +88,13 @@ export async function schedulePriceUpdates(interval: number) {
   }, interval);
 }
 
+// ... (rest of the file remains the same)
+
 export async function sendDailyUpdate() {
   try {
     const contracts = await Contract.find().sort({ currentPrice: -1 }).limit(5);
     const subscribers = await Subscriber.find({ 
-      alertTypes: { $regex: /^dailyupdate$/i } 
+      alertTypes: 'dailyupdate'  // Changed from regex to exact match
     });
     console.log('Sending daily update to subscribers:', subscribers);
 
