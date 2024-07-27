@@ -1,8 +1,8 @@
 import express from 'express';
-import cors from 'cors';
 import http from 'http';
 import WebSocket from 'ws';
 import mongoose from 'mongoose';
+import cors from 'cors';
 import contractRoutes from './routes/contracts';
 import subscriptionRoutes from './routes/subscription';
 import { updateContractPrices, schedulePriceUpdates } from './services/priceUpdateService';
@@ -11,6 +11,13 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/prediction-market-aggregator')
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('Error connecting to MongoDB:', err));
@@ -18,14 +25,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/predictio
 app.use(express.json());
 app.use('/api/contracts', contractRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-const corsOptions = {
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-app.use(cors(corsOptions));
-
-app.options('*', cors(corsOptions));
 
 wss.on('connection', (ws) => {
   console.log('New WebSocket connection');
@@ -50,7 +49,7 @@ setInterval(async () => {
   // });
 }, UPDATE_INTERVAL);
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
