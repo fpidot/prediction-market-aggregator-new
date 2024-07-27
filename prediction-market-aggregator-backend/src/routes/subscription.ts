@@ -14,17 +14,11 @@ router.post('/subscribe', async (req, res) => {
 
     if (subscriber) {
       // Update existing subscriber
-      const categoriesChanged = !arraysEqual(subscriber.categories, categories);
-      const alertTypesChanged = !arraysEqual(subscriber.alertTypes, alertTypes);
-
-      if (categoriesChanged || alertTypesChanged) {
-        subscriber.categories = categories;
-        subscriber.alertTypes = alertTypes;
-        await subscriber.save();
-        return res.status(200).json({ message: 'Subscription updated', subscriber });
-      } else {
-        return res.status(200).json({ message: 'No changes in subscription', subscriber });
-      }
+      subscriber.categories = categories;
+      subscriber.alertTypes = alertTypes;
+      subscriber.status = 'subscribed';
+      await subscriber.save();
+      res.status(200).json({ message: 'Subscription updated', subscriber });
     } else {
       // Create new subscriber
       const confirmationCode = generateConfirmationCode();
@@ -32,12 +26,17 @@ router.post('/subscribe', async (req, res) => {
         phoneNumber,
         categories,
         alertTypes,
+        status: 'subscribed',
+        isActive: true,
         confirmationCode,
         isConfirmed: false
       });
       await subscriber.save();
+      
+      // Send confirmation SMS
       await sendSMS(phoneNumber, `Your confirmation code is: ${confirmationCode}`);
-      return res.status(201).json({ message: 'Please confirm your subscription', awaitingConfirmation: true });
+      
+      res.status(201).json({ message: 'Please confirm your subscription', awaitingConfirmation: true });
     }
   } catch (error) {
     console.error('Error in subscription:', error);

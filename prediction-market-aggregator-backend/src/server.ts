@@ -5,7 +5,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import contractRoutes from './routes/contracts';
 import subscriptionRoutes from './routes/subscription';
-import { updateContractPrices, schedulePriceUpdates } from './services/priceUpdateService';
+import adminRoutes from './routes/admin'; // Make sure this is imported
+import { updateContractPrices, schedulePriceUpdates, sendDailyUpdate } from './services/priceUpdateService';
 import Contract from './models/Contract';
 
 const app = express();
@@ -26,6 +27,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/predictio
 app.use(express.json());
 app.use('/api/contracts', contractRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/admin', adminRoutes);
 
 wss.on('connection', (ws) => {
   console.log('New WebSocket connection');
@@ -36,6 +38,7 @@ wss.on('connection', (ws) => {
 });
 
 const UPDATE_INTERVAL = 60000; // 1 minute
+
 
 schedulePriceUpdates(UPDATE_INTERVAL);
 
@@ -52,6 +55,12 @@ setInterval(async () => {
     console.error('Error updating prices:', error);
   }
 }, UPDATE_INTERVAL);
+
+const DAILY_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+setInterval(sendDailyUpdate, DAILY_UPDATE_INTERVAL);
+
+// Optionally, send a daily update when the server starts
+sendDailyUpdate();
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

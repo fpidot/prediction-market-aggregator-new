@@ -3,13 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useSelector } from 'react-redux';
 import { selectAllContracts } from '../store/contractsSlice';
 import { Box, Typography } from '@mui/material';
-import api from '../services/api';
+import { fetchDashboardMetrics } from '../services/api';
+
 
 interface DashboardMetrics {
   totalSMS: number;
   totalSubscribers: number;
   activeSubscribers: number;
   recentSMS: Array<{ to: string; body: string; createdAt: string }>;
+  totalContracts: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -19,21 +21,21 @@ const Dashboard: React.FC = () => {
     totalSubscribers: 0,
     activeSubscribers: 0,
     recentSMS: [],
+    totalContracts: 0
   });
 
-  const fetchDashboardMetrics = useCallback(async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
-      const response = await api.get('/admin/dashboard-metrics');
-      console.log('Dashboard metrics response:', response.data);
-      setMetrics(response.data);
+      const data = await fetchDashboardMetrics();
+      setMetrics(data);
     } catch (error) {
       console.error('Error fetching dashboard metrics:', error);
     }
   }, []);
 
   useEffect(() => {
-    fetchDashboardMetrics();
-  }, [fetchDashboardMetrics]);
+    fetchMetrics();
+  }, [fetchMetrics]);
 
   const subscriberData = [
     { name: 'Active', value: metrics.activeSubscribers },
@@ -47,6 +49,7 @@ const Dashboard: React.FC = () => {
         <Typography>Total SMS Sent: {metrics.totalSMS}</Typography>
         <Typography>Total Subscribers: {metrics.totalSubscribers}</Typography>
         <Typography>Active Subscribers: {metrics.activeSubscribers}</Typography>
+        <Typography>Total Contracts: {metrics.totalContracts}</Typography>
       </Box>
       <Box className="subscriber-chart" sx={{ width: '100%', height: 300 }}>
         <ResponsiveContainer>
@@ -72,16 +75,6 @@ const Dashboard: React.FC = () => {
           ) : (
             <li>No recent SMS</li>
           )}
-        </ul>
-      </Box>
-      <Box className="contracts-summary">
-        <Typography variant="h6">Contracts Summary</Typography>
-        <ul>
-          {contracts.map((contract) => (
-            <li key={contract._id}>
-              {contract.name}: Current Price: {contract.currentPrice.toFixed(2)}
-            </li>
-          ))}
         </ul>
       </Box>
     </Box>

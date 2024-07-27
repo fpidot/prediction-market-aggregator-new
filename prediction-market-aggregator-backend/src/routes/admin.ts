@@ -3,6 +3,7 @@ import { Subscriber } from '../models/Subscriber';
 import { adminAuth } from '../middleware/adminAuth';
 import * as adminController from '../controllers/adminController';
 import * as authController from '../controllers/authController';
+import Contract from '../models/Contract';
 
 const router = express.Router();
 
@@ -26,21 +27,33 @@ router.get('/thresholds', adminAuth, adminController.getThresholds);
 router.put('/thresholds', adminAuth, adminController.updateThresholds);
 
 router.get('/dashboard-metrics', async (req, res) => {
-    try {
-      const totalSubscribers = await Subscriber.countDocuments();
-      const activeSubscribers = await Subscriber.countDocuments({ status: 'subscribed', isConfirmed: true });
-      // Fetch other metrics as needed
-  
-      res.json({
-        totalSubscribers,
-        activeSubscribers,
-        totalSMS: 0, // Implement this based on your SMS tracking logic
-        recentSMS: [] // Implement this based on your SMS tracking logic
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard metrics:', error);
-      res.status(500).json({ message: 'Error fetching dashboard metrics' });
-    }
-  });
-  
+  try {
+    const totalSubscribers = await Subscriber.countDocuments();
+    const activeSubscribers = await Subscriber.countDocuments({ 
+      status: 'subscribed', 
+      isConfirmed: true 
+    });
+    const totalContracts = await Contract.countDocuments();
+    const totalSMS = 0; // Placeholder, implement actual SMS counting logic
+
+    console.log('Dashboard metrics:', {
+      totalSubscribers,
+      activeSubscribers,
+      totalSMS,
+      totalContracts
+    });
+
+    res.json({
+      totalSubscribers,
+      activeSubscribers,
+      totalSMS,
+      totalContracts,
+      recentSMS: [] // Implement this based on your SMS tracking system
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard metrics:', error);
+    res.status(500).json({ message: 'Error fetching dashboard metrics' });
+  }
+});
+
 export default router;

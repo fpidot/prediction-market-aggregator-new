@@ -29,3 +29,7 @@ const ContractSchema: Schema = new Schema({
 });
 
 export default mongoose.model<IContract>('Contract', ContractSchema);
+
+const Contract = mongoose.model<IContract>('Contract', ContractSchema);
+
+export { Contract };

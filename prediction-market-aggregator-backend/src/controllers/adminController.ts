@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AdminUser, IAdminUser } from '../models/AdminUser';
-import { Contract, IContract } from '../models/Contract';
+import Contract, { IContract } from '../models/Contract';
 import { Subscriber, ISubscriber } from '../models/Subscriber';
 import { BigMoveThreshold, IBigMoveThreshold } from '../models/BigMoveThreshold';
 import bcrypt from 'bcrypt';

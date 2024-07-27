@@ -6,6 +6,35 @@ function getRandomPriceChange(): number {
   return (Math.random() - 0.5) * 0.1; // Random change between -0.05 and 0.05
 }
 
+export async function sendDailyUpdate() {
+  try {
+    const contracts = await Contract.find().sort({ currentPrice: -1 }).limit(5);
+    const subscribers = await Subscriber.find({ 
+      alertTypes: { $in: ['dailyupdate', 'Daily Update'] },
+      isConfirmed: true,
+      status: 'subscribed'
+    });
+    console.log('Sending daily update to subscribers:', subscribers);
+
+    const message = `Daily Update:\nTop 5 Contracts:\n${contracts
+      .map((contract) => `${contract.name}: ${contract.currentPrice.toFixed(2)}`)
+      .join('\n')}`;
+
+    for (const subscriber of subscribers) {
+      try {
+        await sendSMS(subscriber.phoneNumber, message);
+        console.log(`Daily update SMS sent to ${subscriber.phoneNumber}`);
+      } catch (error) {
+        console.error(`Failed to send daily update SMS to ${subscriber.phoneNumber}:`, error);
+      }
+    }
+
+    console.log('Daily update process completed');
+  } catch (error) {
+    console.error('Error in sendDailyUpdate:', error);
+  }
+}
+
 export async function updateContractPrices() {
   try {
     const contracts = await Contract.find();
@@ -33,8 +62,12 @@ export async function updateContractPrices() {
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const oneHourPrice = contract.priceHistory.find(ph => ph.timestamp >= oneHourAgo)?.price || currentPrice;
       const twentyFourHourPrice = contract.priceHistory.find(ph => ph.timestamp >= twentyFourHoursAgo)?.price || currentPrice;
-      const oneHourChange = ((newPrice - oneHourPrice) / oneHourPrice) * 100;
-      const twentyFourHourChange = ((newPrice - twentyFourHourPrice) / twentyFourHourPrice) * 100;
+      let oneHourChange = ((newPrice - oneHourPrice) / oneHourPrice) * 100;
+      let twentyFourHourChange = ((newPrice - twentyFourHourPrice) / twentyFourHourPrice) * 100;
+
+      // Ensure the changes are valid numbers
+      oneHourChange = isNaN(oneHourChange) ? 0 : oneHourChange;
+      twentyFourHourChange = isNaN(twentyFourHourChange) ? 0 : twentyFourHourChange;
 
       await Contract.updateOne(
         { _id: contract._id },
