@@ -1,79 +1,71 @@
-import { Contract } from '../models/Contract';
-import { checkForBigMoves } from './bigMoveAlertService';
+import Contract from '../models/Contract';
 
-interface VersionError extends Error {
-    name: string;
-    version: number;
-    modifiedPaths: string[];
-  }
-  
-  export async function updatePrices() {
+// Utility function to generate random price change
+function getRandomPriceChange(): number {
+  const change = (Math.random() - 0.5) * 0.1; // Random change between -0.05 and 0.05
+  return Number(change.toFixed(4)); // Round to 4 decimal places
+}
+
+export async function updateContractPrices() {
+  try {
     const contracts = await Contract.find();
     const updatedContracts = [];
-  
+
     for (const contract of contracts) {
-      try {
-        // Fetch the latest version of the contract
-        const latestContract = await Contract.findById(contract._id);
-        if (!latestContract) {
-          console.log(`Contract not found: ${contract._id}`);
-          continue;
-        }
-  
-        // Simulate fetching new price from third-party platform
-        const newPrice = latestContract.currentPrice + (Math.random() - 0.5) * 0.1;
-        
-        // Add new price point to history
-        latestContract.priceHistory.push({ price: newPrice, timestamp: new Date() });
-  
-        // Keep only last 24 hours of price history
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        latestContract.priceHistory = latestContract.priceHistory.filter(pp => pp.timestamp >= oneDayAgo);
-  
-        // Update current price
-        latestContract.currentPrice = newPrice;
-  
-        // Save with optimistic concurrency control
-        await latestContract.save();
-        updatedContracts.push(latestContract);
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          if (error.name === 'VersionError') {
-            console.log(`Concurrency issue updating contract ${contract._id}, will retry on next cycle`);
-          } else {
-            console.error(`Error updating contract ${contract._id}:`, error.message);
-          }
-        } else {
-          console.error(`Unknown error updating contract ${contract._id}`);
-        }
+      const currentPrice = contract.currentPrice;
+      const priceChange = getRandomPriceChange();
+      const newPrice = Math.max(0, Math.min(1, currentPrice + priceChange));
+
+      contract.currentPrice = newPrice;
+      contract.lastUpdated = new Date();
+      contract.priceHistory.push({ price: newPrice, timestamp: new Date() });
+
+      // Ensure all required fields are present
+      if (!contract.description) {
+        contract.description = 'No description available';
       }
+      if (!contract.marketplace) {
+        contract.marketplace = 'Unknown';
+      }
+      if (!contract.category) {
+        contract.category = 'Uncategorized';
+      }
+
+      updatedContracts.push(contract);
     }
-  
-    console.log('Prices updated:', updatedContracts.map(c => ({ name: c.name, price: c.currentPrice })));
-    await checkForBigMoves();
-    return updatedContracts;
+
+    // Use bulkWrite for efficient batch updates
+    await Contract.bulkWrite(
+      updatedContracts.map((contract) => ({
+        updateOne: {
+          filter: { _id: contract._id },
+          update: {
+            $set: {
+              currentPrice: contract.currentPrice,
+              lastUpdated: contract.lastUpdated,
+              description: contract.description,
+              marketplace: contract.marketplace,
+              category: contract.category,
+            },
+            $push: {
+              priceHistory: {
+                $each: [{ price: contract.currentPrice, timestamp: contract.lastUpdated }],
+                $slice: -100 // Keep only the last 100 price history entries
+              }
+            }
+          }
+        }
+      }))
+    );
+
+    console.log(`Updated prices for ${updatedContracts.length} contracts`);
+  } catch (error) {
+    console.error('Error updating contract prices:', error);
   }
+}
 
-export async function getContractsWithChanges() {
-  const contracts = await Contract.find();
-  return contracts.map(contract => {
-    const latestPrice = contract.currentPrice;
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    const oneHourAgoPrice = contract.priceHistory.find(pp => pp.timestamp <= oneHourAgo)?.price ?? latestPrice;
-    const twentyFourHoursAgoPrice = contract.priceHistory.find(pp => pp.timestamp <= twentyFourHoursAgo)?.price ?? latestPrice;
-
-    const oneHourChange = latestPrice - oneHourAgoPrice;
-    const twentyFourHourChange = latestPrice - twentyFourHoursAgoPrice;
-
-    return {
-      _id: contract._id,
-      name: contract.name,
-      category: contract.category,
-      currentPrice: latestPrice,
-      oneHourChange,
-      twentyFourHourChange
-    };
-  });
+export async function schedulePriceUpdates(interval: number) {
+  setInterval(async () => {
+    await updateContractPrices();
+  }, interval);
 }

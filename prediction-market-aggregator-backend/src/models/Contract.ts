@@ -1,36 +1,25 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IContract extends Document {
-  name: string;
+  externalId: string;
+  marketplace: string;
+  title: string;
   description: string;
   category: string;
   currentPrice: number;
-  priceHistory: {
-    timestamp: Date;
-    price: number;
-  }[];
-  outcomes: {
-    name: string;
-    price: number;
-  }[];
-  displayOutcomes: number;
+  lastUpdated: Date;
+  priceHistory: { price: number; timestamp: Date }[];
 }
 
-const ContractSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+const ContractSchema: Schema = new Schema({
+  externalId: { type: String, required: true, unique: true },
+  marketplace: { type: String, required: true },
+  title: { type: String, required: true },
   description: { type: String, required: true },
   category: { type: String, required: true },
   currentPrice: { type: Number, required: true },
-  priceHistory: [{
-    timestamp: { type: Date, default: Date.now },
-    price: { type: Number, required: true }
-  }],
-  outcomes: [{
-    name: { type: String, required: true },
-    price: { type: Number, required: true }
-  }],
-  displayOutcomes: { type: Number, default: 2 }
+  lastUpdated: { type: Date, default: Date.now },
+  priceHistory: [{ price: Number, timestamp: Date }]
 });
 
-
-export const Contract: Model<IContract> = mongoose.model<IContract>('Contract', ContractSchema);
+export default mongoose.model<IContract>('Contract', ContractSchema);
