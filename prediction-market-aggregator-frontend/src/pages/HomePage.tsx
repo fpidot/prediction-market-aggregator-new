@@ -1,151 +1,123 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Typography, 
-  Container, 
-  CircularProgress, 
-  List, 
-  ListItem, 
-  ListItemText, 
-  Tabs,
-  Tab,
-  Box
-} from '@mui/material';
-import { ArrowDropUp, ArrowDropDown } from '@mui/icons-material';
-import { fetchContractsAsync, updateContracts, Contract, selectAllContracts, selectContractsStatus, selectContractsError } from '../store/contractsSlice';
+import { fetchContractsAsync, updateContracts, selectAllContracts } from '../store/contractsSlice';
 import { AppDispatch } from '../store';
+import { Tabs, Tab, Typography, Box } from '@mui/material';
 import SubscriptionForm from '../components/SubscriptionForm';
 
-const categories = ['Elections', 'Economics', 'Geopolitics'];
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 const HomePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const contracts = useSelector(selectAllContracts);
-  const status = useSelector(selectContractsStatus);
-  const error = useSelector(selectContractsError);
-  const [selectedCategory, setSelectedCategory] = useState(0);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
 
-  useEffect(() => {
-    dispatch(fetchContractsAsync());
-  
+  const connectWebSocket = useCallback(() => {
     const ws = new WebSocket('ws://localhost:5000');
-    
+
     ws.onopen = () => {
       console.log('WebSocket connection established');
+      setWsConnected(true);
     };
-  
-    ws.onmessage = async (event) => {
-      console.log('Received WebSocket message');
-      try {
-        let text: string;
-        if (event.data instanceof Blob) {
-          text = await new Response(event.data).text();
-        } else {
-          text = event.data;
-        }
-        console.log('Message content:', text);
-        if (text) {
-          const updatedContracts: Contract[] = JSON.parse(text);
-          console.log('Updating contracts:', updatedContracts.map((c: Contract) => ({ name: c.name, price: c.currentPrice })));
-          dispatch(updateContracts(updatedContracts));
-        } else {
-          console.warn('Received empty message');
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Received WebSocket message:', data);
+      if (data.type === 'PRICE_UPDATE') {
+        console.log('Updating contracts:', data.contracts);
+        dispatch(updateContracts(data.contracts));
       }
     };
-    
+
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
     };
-  
-    ws.onclose = (event) => {
-      console.log('WebSocket connection closed:', event.code, event.reason);
+
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+      setWsConnected(false);
+      setTimeout(connectWebSocket, 5000); // Try to reconnect after 5 seconds
     };
-  
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
+
+    return ws;
   }, [dispatch]);
 
-  const handleCategoryChange = (event: React.SyntheticEvent, newValue: number) => {
-    setSelectedCategory(newValue);
+  useEffect(() => {
+    dispatch(fetchContractsAsync());
+    const ws = connectWebSocket();
+    return () => {
+      ws.close();
+    };
+  }, [dispatch, connectWebSocket]);
+
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
-  const filteredContracts = contracts.filter(
-    (contract: Contract) => contract.category === categories[selectedCategory]
-  );
-
-  const renderPriceChange = (change: number) => (
-    <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
-      {change > 0 ? (
-        <ArrowDropUp sx={{ color: 'success.main' }} />
-      ) : (
-        <ArrowDropDown sx={{ color: 'error.main' }} />
-      )}
-      <Typography
-        component="span"
-        sx={{ color: change > 0 ? 'success.main' : 'error.main' }}
-      >
-        {Math.abs(change).toFixed(2)}¢
-      </Typography>
-    </Box>
-  );
+  const renderContracts = (category: string) => {
+    return contracts
+      .filter(contract => contract.category === category)
+      .map((contract) => (
+        <Box key={contract._id} sx={{ mb: 2 }}>
+          <Typography variant="h6">{contract.name}</Typography>
+          <Typography>Current Price: {contract.currentPrice?.toFixed(2) ?? 'N/A'}</Typography>
+          <Typography>1 Hour Change: {contract.oneHourChange?.toFixed(2) ?? 'N/A'}%</Typography>
+          <Typography>24 Hour Change: {contract.twentyFourHourChange?.toFixed(2) ?? 'N/A'}%</Typography>
+        </Box>
+      ));
+  };
 
   return (
-    <Container>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Prediction Market Aggregator
-      </Typography>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={selectedCategory} onChange={handleCategoryChange} aria-label="contract categories">
-          {categories.map((category, index) => (
-            <Tab label={category} key={index} />
-          ))}
+    <Box sx={{ width: '100%' }}>
+      <Typography variant="h4" sx={{ mb: 2 }}>Prediction Market Aggregator</Typography>
+      <Typography sx={{ mb: 2 }}>WebSocket status: {wsConnected ? 'Connected' : 'Disconnected'}</Typography>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="contract categories">
+          <Tab label="Elections" />
+          <Tab label="Economics" />
+          <Tab label="Geopolitics" />
         </Tabs>
       </Box>
-      {status === 'loading' && <CircularProgress />}
-      {status === 'failed' && <Typography color="error">{error}</Typography>}
-      {status === 'succeeded' && (
-        <>
-          <Typography variant="h6" gutterBottom>
-            {categories[selectedCategory]} Contracts:
-          </Typography>
-          {filteredContracts.length === 0 ? (
-            <Typography>No contracts available for this category at the moment.</Typography>
-          ) : (
-            <List>
-              {filteredContracts.map((contract: Contract) => (
-                <ListItem key={contract._id} divider>
-                  <ListItemText
-                    primary={contract.name}
-                    secondary={
-                      <>
-                        <Typography component="span" variant="body2">
-                          Current Price: ${contract.currentPrice.toFixed(2)}
-                        </Typography>
-                        <br />
-                        <Typography component="span" variant="body2">
-                          1h Change: {renderPriceChange(contract.oneHourChange)}
-                        </Typography>
-                        <br />
-                        <Typography component="span" variant="body2">
-                          24h Change: {renderPriceChange(contract.twentyFourHourChange)}
-                        </Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </>
-      )}
-      <SubscriptionForm />
-    </Container>
+      <TabPanel value={tabValue} index={0}>
+        {renderContracts('Elections')}
+      </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        {renderContracts('Economics')}
+      </TabPanel>
+      <TabPanel value={tabValue} index={2}>
+        {renderContracts('Geopolitics')}
+      </TabPanel>
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" sx={{ mb: 2 }}>Subscribe to Alerts</Typography>
+        <SubscriptionForm />
+      </Box>
+    </Box>
   );
 };
 

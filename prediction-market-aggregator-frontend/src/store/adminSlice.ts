@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { adminLogin, adminLogout, checkAdminAuth, refreshAdminToken, AuthResponse } from '../services/auth';
 import api from '../services/api';
 
@@ -83,10 +83,29 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
     return response.data;
   });
   
-  export const deleteContract = createAsyncThunk('admin/deleteContract', async (id: string) => {
-    await api.del(`/admin/contracts/${id}`);
-    return id;
-  });
+  export const deleteContract = createAsyncThunk(
+    'admin/deleteContract',
+    async (id: string, { rejectWithValue }) => {
+      try {
+        await api.delete(`/admin/contracts/${id}`);
+        return id;
+      } catch (error) {
+        return rejectWithValue((error as Error).message);
+      }
+    }
+  );
+
+  export const deleteSubscription = createAsyncThunk(
+    'admin/deleteSubscription',
+    async (id: string, { rejectWithValue }) => {
+      try {
+        await api.delete(`/subscriptions/${id}`);
+        return id;
+      } catch (error) {
+        return rejectWithValue((error as Error).message);
+      }
+    }
+  );
   
   export const fetchSubscriptions = createAsyncThunk('admin/fetchSubscriptions', async () => {
     const response = await api.get('/admin/subscriptions');

@@ -9,6 +9,7 @@ function getRandomPriceChange(): number {
 export async function updateContractPrices() {
   try {
     const contracts = await Contract.find();
+    const updatedContracts = [];
     const bigMoves = [];
     const now = new Date();
 
@@ -59,7 +60,9 @@ export async function updateContractPrices() {
 
     if (bigMoves.length > 0) {
       const subscribers = await Subscriber.find({ 
-        alertTypes: 'bigmove'  // Changed from regex to exact match
+        alertTypes: 'bigmove',
+        isConfirmed: true,
+        isActive: true
       });
       console.log('Subscribers for big move alert:', subscribers);
       for (const subscriber of subscribers) {
@@ -71,7 +74,12 @@ export async function updateContractPrices() {
               )} (${move.percentageChange.toFixed(2)}%)`
           )
           .join('\n')}`;
-        await sendSMS(subscriber.phoneNumber, message);
+        try {
+          await sendSMS(subscriber.phoneNumber, message);
+          console.log(`SMS sent to ${subscriber.phoneNumber}`);
+        } catch (error) {
+          console.error(`Failed to send SMS to ${subscriber.phoneNumber}:`, error);
+        }
       }
     }
 
@@ -88,7 +96,6 @@ export async function schedulePriceUpdates(interval: number) {
   }, interval);
 }
 
-// ... (rest of the file remains the same)
 
 export async function sendDailyUpdate() {
   try {

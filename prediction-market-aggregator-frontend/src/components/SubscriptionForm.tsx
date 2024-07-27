@@ -1,123 +1,130 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { subscribeUser, confirmSubscription } from '../services/api';
+import { submitSubscription, confirmSubscription } from '../services/api';
+import { TextField, Button, Checkbox, FormControlLabel, FormGroup, Box, Typography } from '@mui/material';
 
 const SubscriptionForm: React.FC = () => {
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [categories, setCategories] = useState<string[]>([]);
-    const [alertTypes, setAlertTypes] = useState<string[]>([]);
-    const [message, setMessage] = useState('');
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [confirmationCode, setConfirmationCode] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedAlertTypes, setSelectedAlertTypes] = useState<string[]>([]);
+  const [confirmationCode, setConfirmationCode] = useState('');
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
-  console.log('API_BASE_URL:', process.env.REACT_APP_API_URL);
-  console.log('Full subscription URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/subscription/subscribe`);
-  
+  const categories = ['Elections', 'Economics', 'Geopolitics'];
+  const alertTypes = ['Daily Update', 'Big Move'];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await subscribeUser(phoneNumber, categories, alertTypes);
-      setMessage(response.message);
-      setShowConfirmation(true);
+      const response = await submitSubscription({ phoneNumber, categories: selectedCategories, alertTypes: selectedAlertTypes });
+      if (response.awaitingConfirmation) {
+        setAwaitingConfirmation(true);
+        alert('Please enter the confirmation code sent to your phone.');
+      } else {
+        alert(response.message); // This will show "Subscription updated" or "New subscription created"
+        resetForm();
+      }
     } catch (error) {
       console.error('Subscription error:', error);
-      setMessage('Error subscribing. Please try again.');
+      alert('Error submitting subscription. Please try again.');
     }
   };
 
-  const handleConfirmation = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmation = async () => {
     try {
-      const response = await confirmSubscription(phoneNumber, confirmationCode);
-      if (response.success) {
-        setMessage(response.message);
-        setShowConfirmation(false);
-      } else {
-        setMessage(response.message || 'Invalid confirmation code. Please try again.');
-      }
+      const response = await confirmSubscription({ phoneNumber, confirmationCode });
+      alert(response.message);
+      resetForm();
     } catch (error) {
       console.error('Confirmation error:', error);
-      setMessage('Error confirming subscription. Please try again.');
+      alert('Error confirming subscription. Please try again.');
     }
+  };
+
+  const resetForm = () => {
+    setPhoneNumber('');
+    setSelectedCategories([]);
+    setSelectedAlertTypes([]);
+    setConfirmationCode('');
+    setAwaitingConfirmation(false);
   };
 
   const handleCategoryChange = (category: string) => {
-    setCategories(prev =>
+    setSelectedCategories(prev =>
       prev.includes(category)
-        ? prev.filter(cat => cat !== category)
+        ? prev.filter(c => c !== category)
         : [...prev, category]
     );
   };
 
-  const handleAlertTypeChange = (type: string) => {
-    setAlertTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
+  const handleAlertTypeChange = (alertType: string) => {
+    setSelectedAlertTypes(prev =>
+      prev.includes(alertType)
+        ? prev.filter(a => a !== alertType)
+        : [...prev, alertType]
     );
   };
 
   return (
-    <div>
-      {!showConfirmation ? (
-        <form onSubmit={handleSubmit}>
-          <input
-            type="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="Enter phone number"
-            required
-          />
-          <div>
-            {['Elections', 'Economics', 'Geopolitics'].map(category => (
-              <label key={category}>
-                <input
-                  type="checkbox"
-                  value={category}
-                  checked={categories.includes(category)}
-                  onChange={() => handleCategoryChange(category)}
-                />
-                {category}
-              </label>
+    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <TextField
+        label="Phone Number"
+        type="tel"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        required
+        fullWidth
+      />
+      {!awaitingConfirmation && (
+        <>
+          <Typography variant="subtitle1">Categories:</Typography>
+          <FormGroup>
+            {categories.map(category => (
+              <FormControlLabel
+                key={category}
+                control={
+                  <Checkbox
+                    checked={selectedCategories.includes(category)}
+                    onChange={() => handleCategoryChange(category)}
+                  />
+                }
+                label={category}
+              />
             ))}
-          </div>
-          <div>
-            <label>
-              <input
-                type="checkbox"
-                value="daily"
-                checked={alertTypes.includes('daily')}
-                onChange={() => handleAlertTypeChange('daily')}
+          </FormGroup>
+          <Typography variant="subtitle1">Alert Types:</Typography>
+          <FormGroup>
+            {alertTypes.map(alertType => (
+              <FormControlLabel
+                key={alertType}
+                control={
+                  <Checkbox
+                    checked={selectedAlertTypes.includes(alertType)}
+                    onChange={() => handleAlertTypeChange(alertType)}
+                  />
+                }
+                label={alertType}
               />
-              Daily Updates
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                value="bigMove"
-                checked={alertTypes.includes('bigMove')}
-                onChange={() => handleAlertTypeChange('bigMove')}
-              />
-              Big Price Moves
-            </label>
-          </div>
-          <button type="submit">Subscribe</button>
-        </form>
-      ) : (
-        <form onSubmit={handleConfirmation}>
-          <input
+            ))}
+          </FormGroup>
+        </>
+      )}
+      {awaitingConfirmation ? (
+        <>
+          <TextField
+            label="Confirmation Code"
             type="text"
             value={confirmationCode}
             onChange={(e) => setConfirmationCode(e.target.value)}
-            placeholder="Enter confirmation code"
             required
+            fullWidth
           />
-          <button type="submit">Confirm Subscription</button>
-        </form>
+          <Button onClick={handleConfirmation} variant="contained">Confirm Subscription</Button>
+        </>
+      ) : (
+        <Button type="submit" variant="contained">Subscribe</Button>
       )}
-      {message && <p>{message}</p>}
-    </div>
+    </Box>
   );
-}; // Added closing curly brace and semicolon here
+};
 
 export default SubscriptionForm;

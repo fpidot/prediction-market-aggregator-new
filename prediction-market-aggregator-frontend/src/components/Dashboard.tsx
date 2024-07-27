@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { fetchDashboardMetrics } from '../services/api';
+import { useSelector } from 'react-redux';
+import { selectAllContracts } from '../store/contractsSlice';
+import { Box, Typography } from '@mui/material';
+import api from '../services/api';
 
 interface DashboardMetrics {
   totalSMS: number;
@@ -10,77 +13,42 @@ interface DashboardMetrics {
 }
 
 const Dashboard: React.FC = () => {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const contracts = useSelector(selectAllContracts);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalSMS: 0,
+    totalSubscribers: 0,
+    activeSubscribers: 0,
+    recentSMS: [],
+  });
 
-  const connectWebSocket = useCallback(() => {
-    const ws = new WebSocket('ws://localhost:5000');
-
-    ws.onopen = () => console.log('WebSocket connected');
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.dashboardMetrics) {
-          setMetrics(data.dashboardMetrics);
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket data:', err);
-      }
-    };
-
-    ws.onerror = (error) => console.error('WebSocket error:', error);
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected. Attempting to reconnect...');
-      setTimeout(connectWebSocket, 3000);
-    };
-
-    return ws;
+  const fetchDashboardMetrics = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/dashboard-metrics');
+      setMetrics(response.data);
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error);
+    }
   }, []);
 
+
   useEffect(() => {
-    const loadMetrics = async () => {
-      try {
-        const data = await fetchDashboardMetrics();
-        setMetrics(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading metrics:', err);
-        setError('Failed to load dashboard metrics. Please try again later.');
-      }
-    };
-    loadMetrics();
-
-    const ws = connectWebSocket();
-
-    return () => {
-      ws.close();
-    };
-  }, [connectWebSocket]);
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  if (!metrics) {
-    return <div>Loading dashboard metrics...</div>;
-  }
+    fetchDashboardMetrics();
+  }, [fetchDashboardMetrics]);
 
   const subscriberData = [
-    { name: 'Active', value: metrics.activeSubscribers || 0 },
-    { name: 'Inactive', value: (metrics.totalSubscribers || 0) - (metrics.activeSubscribers || 0) },
+    { name: 'Active', value: metrics.activeSubscribers },
+    { name: 'Inactive', value: metrics.totalSubscribers - metrics.activeSubscribers },
   ];
 
   return (
-    <div className="dashboard">
-      <h1>Dashboard</h1>
-      <div className="metrics-summary">
-        <div>Total SMS Sent: {metrics.totalSMS || 0}</div>
-        <div>Total Subscribers: {metrics.totalSubscribers || 0}</div>
-        <div>Active Subscribers: {metrics.activeSubscribers || 0}</div>
-      </div>
-      <div className="subscriber-chart" style={{ width: '100%', height: 300 }}>
+    <Box className="dashboard">
+      <Typography variant="h4">Dashboard</Typography>
+      <Box className="metrics-summary">
+        <Typography>Total SMS Sent: {metrics.totalSMS}</Typography>
+        <Typography>Total Subscribers: {metrics.totalSubscribers}</Typography>
+        <Typography>Active Subscribers: {metrics.activeSubscribers}</Typography>
+      </Box>
+      <Box className="subscriber-chart" sx={{ width: '100%', height: 300 }}>
         <ResponsiveContainer>
           <BarChart data={subscriberData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -91,11 +59,11 @@ const Dashboard: React.FC = () => {
             <Bar dataKey="value" fill="#8884d8" />
           </BarChart>
         </ResponsiveContainer>
-      </div>
-      <div className="recent-sms">
-        <h2>Recent SMS</h2>
+      </Box>
+      <Box className="recent-sms">
+        <Typography variant="h6">Recent SMS</Typography>
         <ul>
-          {metrics.recentSMS && metrics.recentSMS.length > 0 ? (
+          {metrics.recentSMS.length > 0 ? (
             metrics.recentSMS.map((sms, index) => (
               <li key={index}>
                 To: {sms.to}, Message: {sms.body}, Sent: {new Date(sms.createdAt).toLocaleString()}
@@ -105,8 +73,18 @@ const Dashboard: React.FC = () => {
             <li>No recent SMS</li>
           )}
         </ul>
-      </div>
-    </div>
+      </Box>
+      <Box className="contracts-summary">
+        <Typography variant="h6">Contracts Summary</Typography>
+        <ul>
+          {contracts.map((contract) => (
+            <li key={contract._id}>
+              {contract.name}: Current Price: {contract.currentPrice.toFixed(2)}
+            </li>
+          ))}
+        </ul>
+      </Box>
+    </Box>
   );
 };
 

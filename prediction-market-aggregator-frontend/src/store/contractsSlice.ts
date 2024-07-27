@@ -5,9 +5,9 @@ export interface Contract {
   _id: string;
   name: string;
   currentPrice: number;
-  category: string;
   oneHourChange: number;
   twentyFourHourChange: number;
+  category: string;
 }
 
 interface ContractsState {
@@ -35,8 +35,12 @@ const contractsSlice = createSlice({
   initialState,
   reducers: {
     updateContracts: (state, action: PayloadAction<Contract[]>) => {
-      state.items = action.payload;
-      console.log('Contracts updated in store:', state.items.map((c: Contract) => ({ name: c.name, price: c.currentPrice })));
+      console.log('Updating contracts in Redux store:', action.payload);
+      if (Array.isArray(action.payload)) {
+        state.items = action.payload;
+      } else {
+        console.error('Invalid payload for updateContracts:', action.payload);
+      }
     },
   },
   extraReducers: (builder) => {
