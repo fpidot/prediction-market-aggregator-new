@@ -1,7 +1,4 @@
 import twilio from 'twilio';
-import SMS from '../models/SMS';
-import { Subscriber } from '../models/Subscriber';
-import logger from '../utils/logger';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -9,38 +6,39 @@ const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
 const client = twilio(accountSid, authToken);
 
-export const sendSMS = async (to: string, body: string): Promise<void> => {
+export async function sendSMS(to: string, body: string) {
   try {
     const message = await client.messages.create({
-      body,
+      body: body,
       from: twilioPhoneNumber,
-      to,
+      to: to
     });
-    
-    // Save the sent SMS to the database
-    const newSMS = new SMS({
-      to,
-      body,
-      createdAt: new Date(),
-      twilioMessageId: message.sid
-    });
-    await newSMS.save();
-
-    // Update subscriber's lastAlertSent
-    await Subscriber.findOneAndUpdate(
-      { phoneNumber: to },
-      { 
-        $set: { 
-          lastAlertSent: new Date(),
-          status: 'subscribed'  // Assuming sending an SMS means they're subscribed
-        }
-      },
-      { upsert: true, new: true }
-    );
-
-    logger.info(`SMS sent to ${to}`);
+    console.log('SMS sent successfully:', message.sid);
+    return message;
   } catch (error) {
-    logger.error('Error sending SMS:', error);
+    console.error('Error sending SMS:', error);
     throw error;
   }
-};
+}
+
+export async function sendDailyUpdate(to: string, body: string) {
+  try {
+    const message = await sendSMS(to, body);
+    console.log('Daily update SMS sent successfully:', message.sid);
+    return message;
+  } catch (error) {
+    console.error('Error sending daily update SMS:', error);
+    throw error;
+  }
+}
+
+export async function sendBigMoveAlert(to: string, body: string) {
+  try {
+    const message = await sendSMS(to, body);
+    console.log('Big move alert SMS sent successfully:', message.sid);
+    return message;
+  } catch (error) {
+    console.error('Error sending big move alert SMS:', error);
+    throw error;
+  }
+}

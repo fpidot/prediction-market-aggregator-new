@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IContract extends Document {
   externalId: string;
+  name: string;
   marketplace: string;
   title: string;
   description: string;

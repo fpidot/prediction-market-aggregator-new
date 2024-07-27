@@ -1,71 +1,117 @@
 import Contract from '../models/Contract';
+import { sendSMS } from './smsService';
+import { Subscriber } from '../models/Subscriber';
 
-// Utility function to generate random price change
 function getRandomPriceChange(): number {
-  const change = (Math.random() - 0.5) * 0.1; // Random change between -0.05 and 0.05
-  return Number(change.toFixed(4)); // Round to 4 decimal places
+  return (Math.random() - 0.5) * 0.1; // Random change between -0.05 and 0.05
 }
 
 export async function updateContractPrices() {
   try {
     const contracts = await Contract.find();
-    const updatedContracts = [];
+    const bigMoves = [];
+    const now = new Date();
 
     for (const contract of contracts) {
       const currentPrice = contract.currentPrice;
       const priceChange = getRandomPriceChange();
       const newPrice = Math.max(0, Math.min(1, currentPrice + priceChange));
 
-      contract.currentPrice = newPrice;
-      contract.lastUpdated = new Date();
-      contract.priceHistory.push({ price: newPrice, timestamp: new Date() });
+      const percentageChange = Math.abs((newPrice - currentPrice) / currentPrice) * 100;
 
-      // Ensure all required fields are present
-      if (!contract.description) {
-        contract.description = 'No description available';
-      }
-      if (!contract.marketplace) {
-        contract.marketplace = 'Unknown';
-      }
-      if (!contract.category) {
-        contract.category = 'Uncategorized';
+      if (percentageChange >= 5) {
+        bigMoves.push({
+          contractName: contract.name,
+          oldPrice: currentPrice,
+          newPrice: newPrice,
+          percentageChange: percentageChange,
+        });
       }
 
-      updatedContracts.push(contract);
-    }
+      // Calculate one hour and 24 hour changes
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const oneHourPrice = contract.priceHistory.find(ph => ph.timestamp >= oneHourAgo)?.price || currentPrice;
+      const twentyFourHourPrice = contract.priceHistory.find(ph => ph.timestamp >= twentyFourHoursAgo)?.price || currentPrice;
+      const oneHourChange = ((newPrice - oneHourPrice) / oneHourPrice) * 100;
+      const twentyFourHourChange = ((newPrice - twentyFourHourPrice) / twentyFourHourPrice) * 100;
 
-    // Use bulkWrite for efficient batch updates
-    await Contract.bulkWrite(
-      updatedContracts.map((contract) => ({
-        updateOne: {
-          filter: { _id: contract._id },
-          update: {
-            $set: {
-              currentPrice: contract.currentPrice,
-              lastUpdated: contract.lastUpdated,
-              description: contract.description,
-              marketplace: contract.marketplace,
-              category: contract.category,
-            },
-            $push: {
-              priceHistory: {
-                $each: [{ price: contract.currentPrice, timestamp: contract.lastUpdated }],
-                $slice: -100 // Keep only the last 100 price history entries
-              }
+      // Update the contract
+      await Contract.updateOne(
+        { _id: contract._id },
+        {
+          $set: {
+            currentPrice: newPrice,
+            lastUpdated: now,
+            oneHourChange: oneHourChange,
+            twentyFourHourChange: twentyFourHourChange
+          },
+          $push: {
+            priceHistory: {
+              $each: [{ price: newPrice, timestamp: now }],
+              $slice: -100 // Keep only the last 100 entries
             }
           }
         }
-      }))
-    );
+      );
+    }
 
-    console.log(`Updated prices for ${updatedContracts.length} contracts`);
+    if (bigMoves.length > 0) {
+      const subscribers = await Subscriber.find({ alertTypes: { $regex: /^bigmove$/i } });
+      console.log('Subscribers for big move alert:', subscribers);
+      for (const subscriber of subscribers) {
+        const message = `Big moves detected:\n${bigMoves
+          .map(
+            (move) =>
+              `${move.contractName}: ${move.oldPrice.toFixed(2)} -> ${move.newPrice.toFixed(
+                2
+              )} (${move.percentageChange.toFixed(2)}%)`
+          )
+          .join('\n')}`;
+        await sendSMS(subscriber.phoneNumber, message);
+      }
+    }
+
+    console.log(`Updated prices for ${contracts.length} contracts`);
+    return contracts;
   } catch (error) {
     console.error('Error updating contract prices:', error);
+    throw error;
   }
 }
+
+// ... rest of the file remains the same
 
 export async function schedulePriceUpdates(interval: number) {
   setInterval(async () => {
     await updateContractPrices();
   }, interval);
+}
+
+export async function sendDailyUpdate() {
+  try {
+    const contracts = await Contract.find().sort({ currentPrice: -1 }).limit(5);
+    const subscribers = await Subscriber.find({ 
+      alertTypes: { $regex: /^dailyupdate$/i } 
+    });
+    console.log('Sending daily update to subscribers:', subscribers);
+
+    const message = `Daily Update:\nTop 5 Contracts:\n${contracts
+      .map((contract) => `${contract.name}: ${contract.currentPrice.toFixed(2)}`)
+      .join('\n')}`;
+
+    for (const subscriber of subscribers) {
+      console.log(`Attempting to send SMS to ${subscriber.phoneNumber}`);
+      try {
+        await sendSMS(subscriber.phoneNumber, message);
+        console.log(`Successfully sent SMS to ${subscriber.phoneNumber}`);
+      } catch (error) {
+        console.error(`Failed to send SMS to ${subscriber.phoneNumber}:`, error);
+      }
+    }
+
+    console.log('Daily update process completed');
+  } catch (error) {
+    console.error('Error in sendDailyUpdate:', error);
+  }
 }

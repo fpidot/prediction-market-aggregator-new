@@ -5,41 +5,31 @@ import { Subscriber } from '../models/Subscriber';
 const router = express.Router();
 
 router.post('/subscribe', async (req, res) => {
-    try {
-      const { phoneNumber, categories, alertTypes } = req.body;
-      
-      let subscriber = await Subscriber.findOne({ phoneNumber });
-      
-      const confirmationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      if (subscriber) {
-        subscriber.categories = categories;
-        subscriber.alertTypes = alertTypes;
-        subscriber.status = 'pending';
-        subscriber.confirmationCode = confirmationCode;
-      } else {
-        subscriber = new Subscriber({ 
-          phoneNumber, 
-          categories, 
-          alertTypes, 
-          status: 'pending', 
-          confirmationCode 
-        });
-      }
-      
-      await subscriber.save();
-      
-      await sendSMS(phoneNumber, `Your confirmation code is: ${confirmationCode}`);
-      
-      res.status(200).json({ message: 'Please confirm your subscription with the code sent to your phone.' });
-    } catch (error) {
-      console.error('Error processing subscription:', error);
-      res.status(500).json({ 
-        message: 'Error processing subscription', 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
-      });
-    }
-  });
+  try {
+    const { phoneNumber, categories, alertTypes } = req.body;
+    console.log('Received subscription request:', { phoneNumber, categories, alertTypes });
+
+    // Normalize alert types
+    const normalizedAlertTypes = alertTypes.map((type: string) => 
+      type.toLowerCase().replace(/\s+/g, '')
+    );
+
+    const subscriber = new Subscriber({
+      phoneNumber,
+      categories,
+      alertTypes: normalizedAlertTypes,
+      status: 'subscribed'
+    });
+
+    await subscriber.save();
+    console.log('New subscriber saved:', subscriber);
+
+    res.status(201).json({ message: 'Subscription successful', subscriber });
+  } catch (error) {
+    console.error('Error in subscription:', error);
+    res.status(500).json({ message: 'Error submitting subscription', error: (error as Error).message });
+  }
+});
 
 router.post('/confirm', async (req, res) => {
     try {
