@@ -14,7 +14,7 @@ async function resetAdminPassword() {
     console.log('Connected to MongoDB');
 
     const email = 'admin@amciv.com';
-    const newPassword = 'RFdG5e35TLwq2';
+    const newPassword = 'new_admin_password';
 
     console.log('Searching for admin user...');
     let admin = await AdminUser.findOne({ email });

@@ -8,6 +8,7 @@ declare global {
   
   import { Request, Response, NextFunction } from 'express';
   import { verifyToken } from '../services/authService';
+  import jwt from 'jsonwebtoken';
   
   export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');

@@ -2,11 +2,21 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { adminLogin, adminLogout, checkAdminAuth, refreshAdminToken, AuthResponse } from '../services/auth';
 import api from '../services/api';
 
+
 export interface Contract {
   _id: string;
   name: string;
   category: string;
   currentPrice: number;
+}
+
+export interface Settings {
+  bigMoveThreshold: number;
+  dailyUpdateTime: string;
+  topContractsToDisplay: number;
+  dataRefreshFrequency: {
+    [key: string]: number;
+  };
 }
 
 export interface Subscription {
@@ -29,6 +39,7 @@ interface AdminState {
   contracts: Contract[];
   subscriptions: Subscription[];
   thresholds: Thresholds | null;
+  settings: Settings | null;
 }
 
 const initialState: AdminState = {
@@ -40,6 +51,7 @@ const initialState: AdminState = {
   contracts: [],
   subscriptions: [],
   thresholds: null,
+  settings: null, 
 };
 
 export const login = createAsyncThunk(
@@ -127,6 +139,16 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
     return response.data;
   });
 
+  export const fetchSettings = createAsyncThunk('admin/fetchSettings', async () => {
+    const response = await api.get('/admin/settings');
+    return response.data;
+  });
+  
+  export const updateSettings = createAsyncThunk('admin/updateSettings', async (settings: Settings) => {
+    const response = await api.put('/admin/settings', settings);
+    return response.data;
+  });
+
 const adminSlice = createSlice({
   name: 'admin',
   initialState,
@@ -190,7 +212,30 @@ const adminSlice = createSlice({
       .addCase(updateThresholds.fulfilled, (state, action) => {
         state.thresholds = action.payload;
       })
-      
+      .addCase(fetchSettings.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSettings.fulfilled, (state, action) => {
+        state.loading = false;
+        state.settings = action.payload;
+      })
+      .addCase(fetchSettings.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch settings';
+      })
+      .addCase(updateSettings.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateSettings.fulfilled, (state, action) => {
+        state.loading = false;
+        state.settings = action.payload;
+      })
+      .addCase(updateSettings.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update settings';
+      })
       ;
       
   },

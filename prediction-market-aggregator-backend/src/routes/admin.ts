@@ -4,8 +4,12 @@ import { adminAuth } from '../middleware/adminAuth';
 import * as adminController from '../controllers/adminController';
 import * as authController from '../controllers/authController';
 import Contract from '../models/Contract';
+import { getSettings, updateSettings } from '../controllers/adminController';
 
 const router = express.Router();
+
+router.get('/settings', adminAuth, getSettings);
+router.put('/settings', adminAuth, updateSettings);
 
 // Admin Authentication
 router.post('/login', authController.login);

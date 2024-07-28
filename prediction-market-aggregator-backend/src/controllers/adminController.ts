@@ -5,8 +5,32 @@ import { Subscriber, ISubscriber } from '../models/Subscriber';
 import { BigMoveThreshold, IBigMoveThreshold } from '../models/BigMoveThreshold';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import Settings from '../models/settings';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+export const getSettings = async (req: Request, res: Response) => {
+  try {
+    const settings = await Settings.findOne();
+    if (!settings) {
+      const defaultSettings = new Settings();
+      await defaultSettings.save();
+      return res.json(defaultSettings);
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching settings' });
+  }
+};
+
+export const updateSettings = async (req: Request, res: Response) => {
+  try {
+    const updatedSettings = await Settings.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+    res.json(updatedSettings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating settings' });
+  }
+};
 
 export const checkAuth = (req: Request, res: Response) => {
     res.json({ isAuthenticated: true });
