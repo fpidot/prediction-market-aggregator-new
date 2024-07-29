@@ -1,3 +1,5 @@
+// src/models/Contract.ts
+
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IContract extends Document {
@@ -12,6 +14,15 @@ export interface IContract extends Document {
   twentyFourHourChange: number;
   lastUpdated: Date;
   priceHistory: { price: number; timestamp: Date }[];
+  internalName: string;
+  type: 'binary' | 'multi';
+  markets: mongoose.Types.ObjectId[];
+  outcomes: {
+    name: string;
+    currentPrice: number;
+    volume: number;
+  }[];
+  isActive: boolean;
 }
 
 const ContractSchema: Schema = new Schema({
@@ -25,11 +36,19 @@ const ContractSchema: Schema = new Schema({
   oneHourChange: { type: Number, default: 0 },
   twentyFourHourChange: { type: Number, default: 0 },
   lastUpdated: { type: Date, default: Date.now },
-  priceHistory: [{ price: Number, timestamp: Date }]
+  priceHistory: [{ price: Number, timestamp: Date }],
+  internalName: { type: String, required: true, unique: true },
+  type: { type: String, enum: ['binary', 'multi'], required: true },
+  markets: [{ type: Schema.Types.ObjectId, ref: 'Market' }],
+  outcomes: [{
+    name: { type: String, required: true },
+    currentPrice: { type: Number, required: true },
+    volume: { type: Number, required: true }
+  }],
+  isActive: { type: Boolean, default: true }
 });
-
-export default mongoose.model<IContract>('Contract', ContractSchema);
 
 const Contract = mongoose.model<IContract>('Contract', ContractSchema);
 
 export { Contract };
+export default Contract;

@@ -5,7 +5,7 @@ import { Subscriber, ISubscriber } from '../models/Subscriber';
 import { BigMoveThreshold, IBigMoveThreshold } from '../models/BigMoveThreshold';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import Settings from '../models/settings';
+import Settings from '../models/Settings';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 

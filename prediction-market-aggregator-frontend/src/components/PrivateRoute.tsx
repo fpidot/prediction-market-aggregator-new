@@ -13,6 +13,9 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const location = useLocation();
 
+  console.log('PrivateRoute - isAuthenticated:', isAuthenticated);
+  console.log('PrivateRoute - current location:', location.pathname);
+
   useEffect(() => {
     if (!isAuthenticated) {
       dispatch(checkAuthentication());

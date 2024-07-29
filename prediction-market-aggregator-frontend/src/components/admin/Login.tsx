@@ -12,11 +12,20 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state: RootState) => state.admin);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const result = await dispatch(login({ email, password }));
-    if (login.fulfilled.match(result)) {
-      navigate('/admin/dashboard');
+    console.log('Attempting login with:', email);
+    try {
+      const resultAction = await dispatch(login({ email, password }));
+      console.log('Login action dispatched, result:', resultAction);
+      if (login.fulfilled.match(resultAction)) {
+        console.log('Login successful, navigating to /admin');
+        navigate('/admin');
+      } else {
+        console.log('Login failed:', resultAction.error);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
     }
   };
 
