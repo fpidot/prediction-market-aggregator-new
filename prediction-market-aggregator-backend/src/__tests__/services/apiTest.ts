@@ -1,5 +1,6 @@
 // src/tests/apiTest.ts
-
+import dotenv from 'dotenv';
+dotenv.config();
 import { PredictItAPI } from '../../services/marketInterfaces/PredictItAPI';
 import { KalshiAPI } from '../../services/marketInterfaces/KalshiAPI';
 import { PolymarketAPI } from '../../services/marketInterfaces/PolymarketAPI';

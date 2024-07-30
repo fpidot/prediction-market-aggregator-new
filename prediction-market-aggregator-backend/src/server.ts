@@ -1,5 +1,7 @@
 // src/services/marketInterfaces/KalshiAPI.ts
 
+import dotenv from 'dotenv';
+dotenv.config();
 import axios from 'axios';
 import { IMarket } from './models/Market';
 import logger from './utils/logger';
