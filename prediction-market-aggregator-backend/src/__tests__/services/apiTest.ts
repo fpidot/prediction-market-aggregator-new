@@ -1,10 +1,10 @@
 // src/tests/apiTest.ts
 
-import { PredictItAPI } from '../services/marketInterfaces/PredictItAPI';
-import { KalshiAPI } from '../services/marketInterfaces/KalshiAPI';
-import { PolymarketAPI } from '../services/marketInterfaces/PolymarketAPI';
-import { ManifoldMarketsAPI } from '../services/marketInterfaces/ManifoldMarketsAPI';
-import logger from '../utils/logger';
+import { PredictItAPI } from '../../services/marketInterfaces/PredictItAPI';
+import { KalshiAPI } from '../../services/marketInterfaces/KalshiAPI';
+import { PolymarketAPI } from '../../services/marketInterfaces/PolymarketAPI';
+import { ManifoldMarketsAPI } from '../../services/marketInterfaces/ManifoldMarketsAPI';
+import logger from '../../utils/logger';
 
 async function testAPIs() {
   const apis = {

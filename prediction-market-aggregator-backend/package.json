@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "node-cron": "^3.0.3",
+    "puppeteer": "^22.14.0",
     "twilio": "^5.2.2",
     "ws": "^8.18.0"
   },

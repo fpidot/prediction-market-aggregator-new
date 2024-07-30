@@ -2,7 +2,7 @@
 
 import mongoose, { Document, Schema } from 'mongoose';
 
-export interface IMarket extends Document {
+export interface IMarket {
   platformId: string;
   platform: string;
   name: string;

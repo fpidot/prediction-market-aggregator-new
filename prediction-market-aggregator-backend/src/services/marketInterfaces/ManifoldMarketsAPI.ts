@@ -38,9 +38,12 @@ export class ManifoldMarketsAPI {
         totalVolume: market.volume,
         lastUpdated: new Date(market.createdTime) // Using createdTime as lastUpdated is not available
       }));
-    } catch (error) {
-      logger.error('Error fetching data from Manifold Markets:', error);
-      return [];
+    } catch (error: any) {
+        console.error('Error fetching data from Manifold Markets:', error.message);
+        if (error.response) {
+          console.error('Error response:', error.response.data);
+        }
+        return [];
     }
   }
 }
