@@ -5,6 +5,7 @@ import * as adminController from '../controllers/adminController';
 import * as authController from '../controllers/authController';
 import Contract from '../models/Contract';
 import { getSettings, updateSettings } from '../controllers/adminController';
+import { discoveryController } from '../controllers/discoveryController';
 
 const router = express.Router();
 
@@ -29,6 +30,10 @@ router.put('/subscriptions/:id', adminAuth, adminController.updateSubscription);
 // Big Move Thresholds
 router.get('/thresholds', adminAuth, adminController.getThresholds);
 router.put('/thresholds', adminAuth, adminController.updateThresholds);
+
+// Discovery Routes
+router.post('/discovery/trigger', adminAuth, discoveryController.triggerDiscovery);
+router.get('/discovery/manual', adminAuth, discoveryController.manualDiscovery);
 
 router.get('/dashboard-metrics', async (req, res) => {
   try {

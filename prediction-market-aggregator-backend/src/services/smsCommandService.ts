@@ -1,27 +1,25 @@
 import { Subscriber, ISubscriber } from '../models/Subscriber';
 
-export async function handleSmsCommand(body: string, from: string): Promise<string> {
-  const command = body.trim().toUpperCase();
-  const subscriber = await Subscriber.findOne({ phoneNumber: from });
+type SubscriptionStatus = 'subscribed' | 'unsubscribed' | 'stopped' | 'paused';
 
-  if (!subscriber) {
-    return 'You are not subscribed to our service.';
+export const handleSmsCommand = async (phone: string, command: string): Promise<string> => {
+  const lowercaseCommand = command.toLowerCase();
+
+  if (lowercaseCommand === 'stop') {
+    await Subscriber.findOneAndUpdate({ phone }, { status: 'stopped' as SubscriptionStatus });
+    return 'You have been unsubscribed from all messages.';
   }
 
-  switch (command) {
-    case 'STOP':
-      subscriber.status = 'stopped';
-      await subscriber.save();
-      return 'You have been unsubscribed from all notifications.';
-    case 'PAUSE':
-      subscriber.status = 'paused';
-      await subscriber.save();
-      return 'Your notifications have been paused.';
-    case 'RESUME':
-      subscriber.status = 'subscribed';
-      await subscriber.save();
-      return 'Your notifications have been resumed.';
-    default:
-      return 'Invalid command. Available commands: STOP, PAUSE, RESUME';
+  if (lowercaseCommand === 'pause') {
+    await Subscriber.findOneAndUpdate({ phone }, { status: 'paused' as SubscriptionStatus });
+    return 'Your subscription has been paused. Send RESUME to resume receiving messages.';
   }
-}
+
+  if (lowercaseCommand === 'resume') {
+    await Subscriber.findOneAndUpdate({ phone }, { status: 'subscribed' as SubscriptionStatus });
+    return 'Your notifications have been resumed.';
+  }
+
+  // Default case for unrecognized commands
+  return 'Invalid command. Available commands: STOP, PAUSE, RESUME';
+};

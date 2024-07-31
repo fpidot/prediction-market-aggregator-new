@@ -1,7 +1,30 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { adminLogin, adminLogout, checkAdminAuth, refreshAdminToken, AuthResponse } from '../services/auth';
 import api from '../services/api';
 
+export const triggerDiscovery = createAsyncThunk(
+  'admin/triggerDiscovery',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/admin/discovery/trigger');
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data || 'An error occurred');
+    }
+  }
+);
+
+export const manualDiscovery = createAsyncThunk(
+  'admin/manualDiscovery',
+  async ({ keyword, category }: { keyword?: string; category?: string }, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/admin/discovery/manual', { params: { keyword, category } });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data || 'An error occurred');
+    }
+  }
+);
 
 export interface Contract {
   _id: string;
@@ -31,27 +54,29 @@ export interface Thresholds {
 }
 
 interface AdminState {
-  user: AuthResponse['user'] | null;
-  token: string | null;
-  isAuthenticated: boolean;
+  contracts: any[];
+  discoveryResults: any[] | null;
   loading: boolean;
   error: string | null;
-  contracts: Contract[];
-  subscriptions: Subscription[];
-  thresholds: Thresholds | null;
-  settings: Settings | null;
+  isAuthenticated: boolean;
+  user: any | null;
+  token: string | null;
+  subscriptions: any[];
+  thresholds: any;
+  settings: any;
 }
 
 const initialState: AdminState = {
-  user: null,
-  token: localStorage.getItem('adminToken'),
-  isAuthenticated: false,
+  contracts: [],
+  discoveryResults: null,
   loading: false,
   error: null,
-  contracts: [],
+  isAuthenticated: false,
+  user: null,
+  token: null,
   subscriptions: [],
-  thresholds: null,
-  settings: null, 
+  thresholds: {},
+  settings: {}
 };
 
 export const login = createAsyncThunk(
@@ -149,10 +174,22 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
     return response.data;
   });
 
-const adminSlice = createSlice({
-  name: 'admin',
-  initialState,
-  reducers: {},
+  const adminSlice = createSlice({
+    name: 'admin',
+    initialState,
+    reducers: {
+      loginSuccess: (state, action: PayloadAction<{ user: any; token: string }>) => {
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+      },
+      logoutSuccess: (state) => {
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+      },
+    },
+
   extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
@@ -236,7 +273,28 @@ const adminSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to update settings';
       })
-      ;
+            .addCase(triggerDiscovery.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(triggerDiscovery.fulfilled, (state, action) => {
+        state.loading = false;
+        state.discoveryResults = action.payload;
+      })
+      .addCase(triggerDiscovery.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(manualDiscovery.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(manualDiscovery.fulfilled, (state, action) => {
+        state.loading = false;
+        state.discoveryResults = action.payload;
+      })
+      .addCase(manualDiscovery.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
       
   },
 });

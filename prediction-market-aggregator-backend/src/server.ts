@@ -1,80 +1,68 @@
-// src/services/marketInterfaces/KalshiAPI.ts
+import express from 'express';
+import http from 'http';
+import WebSocket from 'ws';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import contractRoutes from './routes/contracts';
+import subscriptionRoutes from './routes/subscription';
+import adminRoutes from './routes/admin'; // Make sure this is imported
+import { updateContractPrices, schedulePriceUpdates, sendDailyUpdate } from './services/priceUpdateService';
+import Contract from './models/Contract';
 
-import dotenv from 'dotenv';
-dotenv.config();
-import axios from 'axios';
-import { IMarket } from './models/Market';
-import logger from './utils/logger';
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-export class KalshiAPI {
-  private baseUrl = 'https://trading-api.kalshi.com/trade-api/v2';
-  private email: string;
-  private password: string;
-  private token: string | null = null;
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 
-constructor() {
-  this.email = process.env.KALSHI_EMAIL || '';
-  this.password = process.env.KALSHI_PASSWORD || '';
-  console.log('Kalshi Email:', this.email);
-  console.log('Kalshi Password:', this.password ? '[REDACTED]' : 'Not set');
-}
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/prediction-market-aggregator')
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('Error connecting to MongoDB:', err));
 
-  private async login(): Promise<void> {
-    try {
-      logger.info(`Attempting to log in to Kalshi with email: ${this.email}`);
-      const response = await axios.post(`${this.baseUrl}/login`, {
-        email: this.email,
-        password: this.password
-      });
-      this.token = response.data.token;
-      logger.info('Successfully logged in to Kalshi');
-    } catch (error: any) {
-      logger.error('Error logging in to Kalshi:', error.response?.data || error.message);
-      throw error;
-    }
-  }
+app.use(express.json());
+app.use('/api/contracts', contractRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/admin', adminRoutes);
 
-  async fetchMarkets(): Promise<Partial<IMarket>[]> {
-    try {
-      if (!this.token) {
-        await this.login();
+wss.on('connection', (ws) => {
+  console.log('New WebSocket connection');
+  
+  ws.on('message', (message) => {
+    console.log('Received message:', message);
+  });
+});
+
+const UPDATE_INTERVAL = 60000; // 1 minute
+
+
+schedulePriceUpdates(UPDATE_INTERVAL);
+
+setInterval(async () => {
+  try {
+    const updatedContracts = await updateContractPrices();
+    console.log('Sending price updates to WebSocket clients');
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: 'PRICE_UPDATE', contracts: updatedContracts }));
       }
-      
-      const response = await axios.get(`${this.baseUrl}/markets`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`
-        }
-      });
-      
-      logger.info(`Fetched ${response.data.markets.length} markets from Kalshi API.`);
-      return response.data.markets.map(this.mapAPIResponseToMarket);
-    } catch (error: any) {
-      logger.error('Error fetching data from Kalshi API:', error.response?.data || error.message);
-      return [];
-    }
+    });
+  } catch (error) {
+    console.error('Error updating prices:', error);
   }
+}, UPDATE_INTERVAL);
 
-  private mapAPIResponseToMarket(market: any): Partial<IMarket> {
-    return {
-      platformId: market.ticker,
-      platform: 'Kalshi',
-      name: market.title,
-      url: `https://kalshi.com/markets/${market.ticker}`,
-      type: 'binary', // Kalshi markets are typically binary
-      outcomes: [
-        {
-          name: 'Yes',
-          currentPrice: market.yes_bid / 100, // Kalshi prices are in cents
-          volume: market.volume / 2 // Approximating volume per outcome
-        },
-        {
-          name: 'No',
-          currentPrice: market.no_bid / 100,
-          volume: market.volume / 2
-        }
-      ],
-      totalVolume: market.volume,
-      lastUpdated: new Date(market.last_updated)
-    };
-  }
-}
+const DAILY_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+setInterval(sendDailyUpdate, DAILY_UPDATE_INTERVAL);
+
+// Optionally, send a daily update when the server starts
+sendDailyUpdate();
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
