@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export interface LoginCredentials {
@@ -24,7 +25,6 @@ const setAuthToken = (token: string) => {
   }
 };
 
-// Existing functions
 export const subscribeUser = async (phoneNumber: string): Promise<{ message: string }> => {
   const response = await axios.post(`${API_URL}/subscribe`, { phoneNumber });
   return response.data;
@@ -35,7 +35,6 @@ export const unsubscribeUser = async (phoneNumber: string): Promise<{ message: s
   return response.data;
 };
 
-// New admin-specific functions
 export const adminLogin = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   const response = await axios.post(`${API_URL}/admin/login`, credentials);
   const { token, user } = response.data;
@@ -51,7 +50,10 @@ export const adminLogout = () => {
 
 export const checkAdminAuth = async (): Promise<boolean> => {
   const token = localStorage.getItem('adminToken');
-  if (!token) return false;
+  if (!token) {
+    adminLogout(); // Ensure we're logged out if there's no token
+    return false;
+  }
 
   try {
     setAuthToken(token);

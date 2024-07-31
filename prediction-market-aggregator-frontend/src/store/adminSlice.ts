@@ -92,6 +92,7 @@ export const login = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk('admin/logout', async () => {
+  localStorage.removeItem('token');
   adminLogout();
 });
 
@@ -188,6 +189,9 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
         state.user = null;
         state.token = null;
       },
+      setAuthenticated: (state, action: PayloadAction<boolean>) => {
+        state.isAuthenticated = action.payload;
+      },
     },
 
   extraReducers: (builder) => {
@@ -211,8 +215,16 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
         state.token = null;
         state.isAuthenticated = false;
       })
+      .addCase(checkAuthentication.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(checkAuthentication.fulfilled, (state, action) => {
         state.isAuthenticated = action.payload;
+        state.loading = false;
+      })
+      .addCase(checkAuthentication.rejected, (state) => {
+        state.isAuthenticated = false;
+        state.loading = false;
       })
       .addCase(refreshAuthToken.fulfilled, (state, action) => {
         state.token = action.payload;

@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import contractsReducer from './contractsSlice';
 import adminReducer from './adminSlice';
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     contracts: contractsReducer,
     admin: adminReducer,

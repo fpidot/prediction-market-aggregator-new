@@ -1,4 +1,6 @@
 import axios, { AxiosError } from 'axios';
+import store from '../store';
+import { logout } from '../store/adminSlice';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -8,6 +10,33 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response && error.response.status === 401) {
+      // Clear auth state and redirect to login
+      store.dispatch(logout());
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const submitSubscription = async (subscriptionData: {
   phoneNumber: string;
