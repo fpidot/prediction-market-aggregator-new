@@ -55,7 +55,7 @@ export interface Thresholds {
 
 interface AdminState {
   contracts: any[];
-  discoveryResults: any[] | null;
+  discoveryResults: any | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
@@ -77,7 +77,7 @@ const initialState: AdminState = {
   subscriptions: [],
   thresholds: {},
   settings: {}
-};
+}
 
 export const login = createAsyncThunk(
   'admin/login',
@@ -310,5 +310,10 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
       
   },
 });
+
+export const { loginSuccess, logoutSuccess, setAuthenticated } = adminSlice.actions;
+
+console.log('adminSlice:', adminSlice);
+console.log('adminSlice.reducer:', adminSlice.reducer);
 
 export default adminSlice.reducer;

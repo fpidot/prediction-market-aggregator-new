@@ -18,7 +18,8 @@ import PrivateRoute from './components/PrivateRoute';
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated = false } = useSelector((state: RootState) => state.admin);
+  const admin = useSelector((state: RootState) => state.admin);
+  const isAuthenticated = admin?.isAuthenticated ?? false;
 
   useEffect(() => {
     dispatch(checkAuthentication());
@@ -26,8 +27,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     console.log('App - Is authenticated:', isAuthenticated);
+    console.log('App - Admin state:', admin);
     console.log('App - Token exists:', !!localStorage.getItem('adminToken'));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, admin]);
 
   return (
     <Container>
