@@ -45,6 +45,8 @@ export interface AdminState {
   settings: Settings;
 }
 
+console.log('Initializing admin slice');
+
 const initialState: AdminState = {
   contracts: [],
   discoveryResults: null,
@@ -322,5 +324,6 @@ export const { setAuthenticated, loginSuccess, logoutSuccess } = adminSlice.acti
 
 console.log('adminSlice:', adminSlice);
 console.log('adminSlice.reducer:', adminSlice.reducer);
+console.log('Admin slice created:', adminSlice);
 
 export default adminSlice.reducer;

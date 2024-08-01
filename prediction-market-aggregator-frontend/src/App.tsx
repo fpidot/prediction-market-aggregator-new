@@ -19,7 +19,10 @@ import PrivateRoute from './components/PrivateRoute';
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, user, token } = useSelector((state: RootState) => state.admin);
+  const admin = useSelector((state: RootState) => state.admin);
+  const isAuthenticated = admin?.isAuthenticated ?? false;
+  const user = admin?.user ?? null;
+  const token = admin?.token ?? null;
 
   useEffect(() => {
     dispatch(checkAuthentication());

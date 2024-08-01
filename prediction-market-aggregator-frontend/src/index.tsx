@@ -5,21 +5,18 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import store from './store';
 
-if (typeof process === 'undefined' || !process.env) {
-  (window as any).process = { 
-    env: { 
-      NODE_ENV: 'development',
-      // Add any other environment variables your app uses
-    } 
-  };
-}
+console.log('Initial Redux State:', store.getState());
 
-if (typeof window !== 'undefined' && typeof (window as any).process === 'undefined') {
-  (window as any).process = { env: { NODE_ENV: 'development' } };
-}
+// Log environment variables
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
 
 // Log the initial state
 console.log('Initial Redux State:', store.getState());
+
+// Log the store configuration
+console.log('Store configuration:', store.getState());
+console.log('Admin reducer:', store.getState().admin);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
