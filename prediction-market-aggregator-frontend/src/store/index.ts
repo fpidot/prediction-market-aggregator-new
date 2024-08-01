@@ -13,6 +13,7 @@ export const store = configureStore({
 
 console.log('Configured store:', store);
 console.log('Store state:', store.getState());
+console.log('Admin reducer in store:', store.getState().admin);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

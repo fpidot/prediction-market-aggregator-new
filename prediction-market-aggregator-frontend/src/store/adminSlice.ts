@@ -2,6 +2,8 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { adminLogin, adminLogout, checkAdminAuth, refreshAdminToken, AuthResponse } from '../services/auth';
 import api from '../services/api';
 
+console.log('Initializing adminSlice');
+
 export const triggerDiscovery = createAsyncThunk(
   'admin/triggerDiscovery',
   async (_, { rejectWithValue }) => {
@@ -82,22 +84,29 @@ const initialState: AdminState = {
 export const login = createAsyncThunk(
   'admin/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
-    try {
+    console.log('Login thunk called with email:', credentials.email);
+     try {
       const response = await adminLogin(credentials);
+      console.log('Login successful');
       return response;
     } catch (error) {
+      console.error('Login failed:', error);
       return rejectWithValue((error as Error).message);
     }
   }
 );
 
 export const logout = createAsyncThunk('admin/logout', async () => {
+  console.log('Logout thunk called');
   localStorage.removeItem('token');
-  adminLogout();
+  await adminLogout();
+  console.log('Logout completed');
 });
 
 export const checkAuthentication = createAsyncThunk('admin/checkAuth', async () => {
+  console.log('Check authentication thunk called');
   const isAuthenticated = await checkAdminAuth();
+  console.log('Authentication check result:', isAuthenticated);
   return isAuthenticated;
 });
 
@@ -180,33 +189,39 @@ export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () 
     initialState,
     reducers: {
       loginSuccess: (state, action: PayloadAction<{ user: any; token: string }>) => {
+        console.log('loginSuccess reducer called');
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
       },
       logoutSuccess: (state) => {
+        console.log('logoutSuccess reducer called');
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
       },
       setAuthenticated: (state, action: PayloadAction<boolean>) => {
-        state.isAuthenticated = action.payload;
+        console.log('setAuthenticated reducer called with:', action.payload);
+          state.isAuthenticated = action.payload;
       },
     },
 
   extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
+        console.log('Login pending');
         state.loading = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
+        console.log('Login fulfilled');
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
       })
       .addCase(login.rejected, (state, action) => {
+        console.log('Login rejected');
         state.loading = false;
         state.error = action.payload as string;
       })
