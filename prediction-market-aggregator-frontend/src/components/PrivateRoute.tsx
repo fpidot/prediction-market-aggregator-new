@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { RootState, AppDispatch } from '../store';
-import { checkAuthentication } from '../store/adminSlice';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useSelector((state: RootState) => state.admin);
   const location = useLocation();
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.admin);
 
   console.log('PrivateRoute - isAuthenticated:', isAuthenticated);
   console.log('PrivateRoute - loading:', loading);

@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Container } from '@mui/material';
-import { RootState, AppDispatch } from './store';
+import { AppDispatch, RootState } from './store';
 import { checkAuthentication } from './store/adminSlice';
 import { refreshAdminToken } from './services/auth';
 import HomePage from './pages/HomePage';
@@ -19,8 +19,7 @@ import PrivateRoute from './components/PrivateRoute';
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const admin = useSelector((state: RootState) => state.admin);
-  const isAuthenticated = admin?.isAuthenticated ?? false;
+  const { isAuthenticated, user, token } = useSelector((state: RootState) => state.admin);
 
   useEffect(() => {
     dispatch(checkAuthentication());
@@ -28,9 +27,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     console.log('App - Is authenticated:', isAuthenticated);
-    console.log('App - Admin state:', admin);
-    console.log('App - Token exists:', !!admin?.token);
-  }, [isAuthenticated, admin]);
+    console.log('App - User:', user);
+    console.log('App - Token exists:', !!token);
+  }, [isAuthenticated, user, token]);
 
   return (
     <Container>
