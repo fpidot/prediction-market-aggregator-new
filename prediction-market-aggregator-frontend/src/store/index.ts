@@ -1,15 +1,35 @@
 import { configureStore } from '@reduxjs/toolkit';
 import contractsReducer from './contractsSlice';
-import adminReducer from './adminSlice';
+import adminReducer, { AdminState } from './adminSlice';
 
 console.log('adminReducer in store:', adminReducer);
+
+if (!adminReducer) {
+  console.error('adminReducer is undefined. Check the import from ./adminSlice');
+}
+
+const fallbackAdminState: AdminState = {
+  contracts: [],
+  discoveryResults: null,
+  loading: false,
+  error: null,
+  isAuthenticated: false,
+  user: null,
+  token: null,
+  subscriptions: [],
+  thresholds: {},
+  settings: {}
+};
+
+const fallbackAdminReducer = (state: AdminState = fallbackAdminState) => state;
 
 export const store = configureStore({
   reducer: {
     contracts: contractsReducer,
-    admin: adminReducer,
+    admin: adminReducer || fallbackAdminReducer,
   },
 });
+
 
 console.log('Configured store:', store);
 console.log('Store state:', store.getState());

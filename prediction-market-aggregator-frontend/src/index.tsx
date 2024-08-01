@@ -14,6 +14,10 @@ if (typeof process === 'undefined' || !process.env) {
   };
 }
 
+if (typeof window !== 'undefined' && typeof (window as any).process === 'undefined') {
+  (window as any).process = { env: { NODE_ENV: 'development' } };
+}
+
 // Log the initial state
 console.log('Initial Redux State:', store.getState());
 

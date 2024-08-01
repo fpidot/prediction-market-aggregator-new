@@ -10,33 +10,40 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const adminState = useSelector((state: RootState) => state.admin);
-  console.log('Admin state in PrivateRoute:', adminState);
-
   const dispatch = useDispatch<AppDispatch>();
   const location = useLocation();
 
+  console.log('Admin state in PrivateRoute:', adminState);
+
   useEffect(() => {
     console.log('PrivateRoute useEffect triggered');
-    if (!adminState.isAuthenticated && !adminState.loading) {
+    if (adminState === undefined || (!adminState.isAuthenticated && !adminState.loading)) {
       dispatch(checkAuthentication());
     }
-  }, [dispatch, adminState.isAuthenticated, adminState.loading]);
+  }, [dispatch, adminState]);
 
-  console.log('PrivateRoute - isAuthenticated:', adminState.isAuthenticated);
-  console.log('PrivateRoute - loading:', adminState.loading);
-  console.log('PrivateRoute - error:', adminState.error);
-  console.log('PrivateRoute - current location:', location.pathname);
-
-  if (adminState.loading) {
+  if (!adminState) {
+    console.log('Admin state is undefined');
     return <div>Loading...</div>;
   }
 
-  if (adminState.error) {
-    console.error('Authentication error:', adminState.error);
-    return <div>Error: {adminState.error}</div>;
+  const { isAuthenticated, loading, error } = adminState;
+
+  console.log('PrivateRoute - isAuthenticated:', isAuthenticated);
+  console.log('PrivateRoute - loading:', loading);
+  console.log('PrivateRoute - error:', error);
+  console.log('PrivateRoute - current location:', location.pathname);
+
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
-  if (!adminState.isAuthenticated) {
+  if (error) {
+    console.error('Authentication error:', error);
+    return <div>Error: {error}</div>;
+  }
+
+  if (!isAuthenticated) {
     console.log('Not authenticated, redirecting to login');
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }

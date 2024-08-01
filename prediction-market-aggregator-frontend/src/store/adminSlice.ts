@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { AppThunk } from './types';
 import { adminLogin, adminLogout, checkAdminAuth, refreshAdminToken, AuthResponse } from '../services/auth';
 import api from '../services/api';
 
@@ -55,7 +56,7 @@ export interface Thresholds {
   dailyThreshold: number;
 }
 
-interface AdminState {
+export interface AdminState {
   contracts: any[];
   discoveryResults: any | null;
   loading: boolean;
