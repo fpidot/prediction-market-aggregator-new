@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Container } from '@mui/material';
 import { RootState, AppDispatch } from './store';
 import { checkAuthentication } from './store/adminSlice';
+import { refreshAdminToken } from './services/auth';
 import HomePage from './pages/HomePage';
 import SubscribePage from './pages/SubscribePage';
 import Login from './components/admin/Login';
@@ -28,7 +29,7 @@ const App: React.FC = () => {
   useEffect(() => {
     console.log('App - Is authenticated:', isAuthenticated);
     console.log('App - Admin state:', admin);
-    console.log('App - Token exists:', !!localStorage.getItem('adminToken'));
+    console.log('App - Token exists:', !!admin?.token);
   }, [isAuthenticated, admin]);
 
   return (

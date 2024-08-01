@@ -5,7 +5,7 @@ import { Subscriber, ISubscriber } from '../models/Subscriber';
 import { BigMoveThreshold, IBigMoveThreshold } from '../models/BigMoveThreshold';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import Settings from '../models/settings';
+import Settings from '../models/Settings';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -32,16 +32,63 @@ export const updateSettings = async (req: Request, res: Response) => {
   }
 };
 
-export const checkAuth = (req: Request, res: Response) => {
-    res.json({ isAuthenticated: true });
-  };
-  
-  export const refreshToken = (req: Request, res: Response) => {
-    // Implement token refresh logic here
-    // For now, we'll just return a dummy token
-    res.json({ token: 'refreshed-token' });
-  };
-  
+export const checkAuth = async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    console.log('Received token:', token);
+
+    if (!token) {
+      console.log('No token provided');
+      return res.status(401).json({ isAuthenticated: false, message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; role: string };
+    console.log('Decoded token:', decoded);
+
+    if (decoded.role !== 'admin') {
+      console.log('User is not an admin');
+      return res.status(403).json({ isAuthenticated: false, message: 'Admin privileges required' });
+    }
+
+    const admin = await AdminUser.findById(decoded.id);
+    if (!admin) {
+      console.log('Admin not found');
+      return res.status(401).json({ isAuthenticated: false, message: 'Admin not found' });
+    }
+
+    console.log('Authentication successful');
+    res.json({ isAuthenticated: true, user: { id: admin._id, email: admin.email, role: 'admin' } });
+  } catch (error) {
+    console.error('Check auth error:', error);
+    res.status(401).json({ isAuthenticated: false, message: 'Invalid token' });
+  }
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; role: string };
+    const admin = await AdminUser.findById(decoded.id);
+
+    if (!admin) {
+      return res.status(401).json({ message: 'Admin not found' });
+    }
+
+    const newToken = jwt.sign({ id: admin._id, email: admin.email, role: 'admin' }, JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    res.json({ token: newToken });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    res.status(401).json({ message: 'Invalid or expired token' });
+  }
+};
+
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -57,6 +104,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({ token, user: { id: admin._id, email: admin.email, role: 'admin' } });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

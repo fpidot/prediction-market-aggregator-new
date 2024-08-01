@@ -12,20 +12,20 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state: RootState) => state.admin);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Attempting login with:', email);
     try {
       const resultAction = await dispatch(login({ email, password }));
-      console.log('Login action dispatched, result:', resultAction);
+      console.log('Login action result:', resultAction);
       if (login.fulfilled.match(resultAction)) {
-        console.log('Login successful, navigating to /admin');
+        console.log('Login successful, token in localStorage:', localStorage.getItem('adminToken'));
         navigate('/admin');
-      } else {
-        console.log('Login failed:', resultAction.error);
+      } else if (login.rejected.match(resultAction)) {
+        console.error('Login failed:', resultAction.error);
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err) {
+      console.error('Login error:', err);
     }
   };
 

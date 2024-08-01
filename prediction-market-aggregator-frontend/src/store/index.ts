@@ -1,14 +1,10 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 import contractsReducer from './contractsSlice';
 import adminReducer, { AdminState } from './adminSlice';
 
-console.log('adminReducer in store:', adminReducer);
+console.log('adminReducer imported:', adminReducer);
 
-if (!adminReducer) {
-  console.error('adminReducer is undefined. Check the import from ./adminSlice');
-}
-
-const fallbackAdminState: AdminState = {
+const initialAdminState: AdminState = {
   contracts: [],
   discoveryResults: null,
   loading: false,
@@ -17,19 +13,27 @@ const fallbackAdminState: AdminState = {
   user: null,
   token: null,
   subscriptions: [],
-  thresholds: {},
-  settings: {}
+  thresholds: {
+    hourlyThreshold: 0,
+    dailyThreshold: 0
+  },
+  settings: {
+    bigMoveThreshold: 0,
+    dailyUpdateTime: '',
+    topContractsToDisplay: 0,
+    dataRefreshFrequency: {}
+  }
 };
-
-const fallbackAdminReducer = (state: AdminState = fallbackAdminState) => state;
 
 export const store = configureStore({
   reducer: {
     contracts: contractsReducer,
-    admin: adminReducer || fallbackAdminReducer,
+    admin: adminReducer
   },
+  preloadedState: {
+    admin: initialAdminState
+  }
 });
-
 
 console.log('Configured store:', store);
 console.log('Store state:', store.getState());
@@ -37,5 +41,11 @@ console.log('Admin reducer in store:', store.getState().admin);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+export type AppThunk<ReturnType = void> = ThunkAction<
+  ReturnType,
+  RootState,
+  unknown,
+  Action<string>
+>;
 
 export default store;
