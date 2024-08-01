@@ -5,6 +5,15 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import store from './store';
 
+if (typeof process === 'undefined' || !process.env) {
+  (window as any).process = { 
+    env: { 
+      NODE_ENV: 'development',
+      // Add any other environment variables your app uses
+    } 
+  };
+}
+
 // Log the initial state
 console.log('Initial Redux State:', store.getState());
 
