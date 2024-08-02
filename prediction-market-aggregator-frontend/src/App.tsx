@@ -15,6 +15,7 @@ import ContractManagement from './pages/admin/ContractManagement';
 import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 import ThresholdManagement from './pages/admin/ThresholdManagement';
 import PrivateRoute from './components/PrivateRoute';
+import { checkAdminAuth } from './services/auth';
 
 
 const App: React.FC = () => {
@@ -25,7 +26,7 @@ const App: React.FC = () => {
   const token = admin?.token ?? null;
 
   useEffect(() => {
-    dispatch(checkAuthentication());
+    dispatch(checkAuthentication(checkAdminAuth));
   }, [dispatch]);
 
   useEffect(() => {

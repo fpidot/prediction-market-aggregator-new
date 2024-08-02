@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import store from '../store';
 import { logout } from '../store/adminSlice';
+import { adminLogout } from './auth';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -31,7 +32,7 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response && error.response.status === 401) {
       // Clear auth state and redirect to login
-      store.dispatch(logout());
+      store.dispatch(logout(adminLogout));
       window.location.href = '/admin/login';
     }
     return Promise.reject(error);

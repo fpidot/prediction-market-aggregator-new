@@ -1,8 +1,22 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { adminLogin, adminLogout, checkAdminAuth, refreshAdminToken, AuthResponse, LoginCredentials } from '../services/auth';
+import { checkAdminAuth, refreshAdminToken, } from '../services/auth';
 import api from '../services/api';
 
 console.log('adminSlice module loaded');
+
+interface AuthResponse {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
 
 // Types
 export interface Contract {
@@ -66,38 +80,65 @@ const initialState: AdminState = {
 };
 
 // Async Thunks
-export const login = createAsyncThunk<AuthResponse, LoginCredentials>(
+export const login = createAsyncThunk(
   'admin/login',
-  async (credentials, { rejectWithValue }) => {
+  async ({ credentials, loginFunction }: { credentials: LoginCredentials; loginFunction: (cred: LoginCredentials) => Promise<AuthResponse> }, { rejectWithValue }) => {
     try {
-      const response = await adminLogin(credentials);
-      console.log('Login thunk response:', response);
+      const response = await loginFunction(credentials);
       return response;
-    } catch (error) {
-      console.error('Login thunk error:', error);
-      return rejectWithValue(error instanceof Error ? error.message : 'An unknown error occurred');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('An unknown error occurred');
     }
   }
 );
 
-export const logout = createAsyncThunk('admin/logout', async () => {
-  console.log('Logout thunk called');
-  localStorage.removeItem('token');
-  await adminLogout();
-  console.log('Logout completed');
-});
+export const logout = createAsyncThunk(
+  'admin/logout',
+  async (logoutFunction: () => void, { rejectWithValue }) => {
+    try {
+      await logoutFunction();
+      return null;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('An unknown error occurred');
+    }
+  }
+);
 
-export const checkAuthentication = createAsyncThunk('admin/checkAuth', async () => {
-  console.log('Check authentication thunk called');
-  const isAuthenticated = await checkAdminAuth();
-  console.log('Authentication check result:', isAuthenticated);
-  return isAuthenticated;
-});
+export const checkAuthentication = createAsyncThunk(
+  'admin/checkAuth',
+  async (checkAuthFunction: () => Promise<boolean>, { rejectWithValue }) => {
+    try {
+      const isAuthenticated = await checkAuthFunction();
+      return isAuthenticated;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('An unknown error occurred');
+    }
+  }
+);
 
-export const refreshAuthToken = createAsyncThunk('admin/refreshToken', async () => {
-  const newToken = await refreshAdminToken();
-  return newToken;
-});
+export const refreshToken = createAsyncThunk(
+  'admin/refreshToken',
+  async (refreshTokenFunction: () => Promise<string | null>, { rejectWithValue }) => {
+    try {
+      const newToken = await refreshTokenFunction();
+      return newToken;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('An unknown error occurred');
+    }
+  }
+);
 
 export const fetchContracts = createAsyncThunk('admin/fetchContracts', async () => {
   const response = await api.get('/admin/contracts');
@@ -237,7 +278,7 @@ const adminSlice = createSlice({
         state.isAuthenticated = false;
         state.loading = false;
       })
-      .addCase(refreshAuthToken.fulfilled, (state, action) => {
+      .addCase(refreshToken.fulfilled, (state, action) => {
         state.token = action.payload;
         state.isAuthenticated = !!action.payload;
       })

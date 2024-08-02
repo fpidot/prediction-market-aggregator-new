@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, TextField, Typography, Container, Box } from '@mui/material';
 import { login } from '../../store/adminSlice';
 import { RootState, AppDispatch } from '../../store';
+import { adminLogin } from '../../services/auth';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -14,16 +15,9 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Attempting login with:', email);
     try {
-      const resultAction = await dispatch(login({ email, password }));
-      console.log('Login action result:', resultAction);
-      if (login.fulfilled.match(resultAction)) {
-        console.log('Login successful, token in localStorage:', localStorage.getItem('adminToken'));
-        navigate('/admin');
-      } else if (login.rejected.match(resultAction)) {
-        console.error('Login failed:', resultAction.error);
-      }
+      const resultAction = await dispatch(login({ credentials: { email, password }, loginFunction: adminLogin }));
+      // ... rest of the code
     } catch (err) {
       console.error('Login error:', err);
     }
