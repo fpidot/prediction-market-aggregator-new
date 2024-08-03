@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import store from './store';
 
+
 console.log('Initial Redux State:', store.getState());
 
 // Log environment variables

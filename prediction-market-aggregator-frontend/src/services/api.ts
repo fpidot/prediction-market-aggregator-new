@@ -1,16 +1,19 @@
-import axios, { AxiosError } from 'axios';
-import store from '../store';
-import { logout } from '../store/adminSlice';
-import { adminLogout } from './auth';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-const api = axios.create({
+interface CustomAxiosInstance extends AxiosInstance {
+  onUnauthorized?: () => void;
+}
+
+const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+const api = axiosInstance as CustomAxiosInstance;
 
 // Request interceptor
 api.interceptors.request.use(
@@ -31,13 +34,16 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response && error.response.status === 401) {
-      // Clear auth state and redirect to login
-      store.dispatch(logout(adminLogout));
-      window.location.href = '/admin/login';
+      // Instead of dispatching an action, we'll use a callback
+      if (api.onUnauthorized) {
+        api.onUnauthorized();
+      }
     }
     return Promise.reject(error);
   }
 );
+
+api.onUnauthorized = () => {};
 
 export const submitSubscription = async (subscriptionData: {
   phoneNumber: string;

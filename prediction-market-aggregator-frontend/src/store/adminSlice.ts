@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { checkAdminAuth, refreshAdminToken, } from '../services/auth';
+import { checkAdminAuth, refreshAdminToken, adminLogout } from '../services/auth';
 import api from '../services/api';
 
 console.log('adminSlice module loaded');
@@ -363,8 +363,11 @@ const adminSlice = createSlice({
 
 export const { setAuthenticated, loginSuccess, logoutSuccess } = adminSlice.actions;
 
-console.log('adminSlice:', adminSlice);
-console.log('adminSlice.reducer:', adminSlice.reducer);
-console.log('Admin slice created:', adminSlice);
+api.onUnauthorized = () => {
+  import('../store').then((storeModule) => {
+    storeModule.default.dispatch(logout(adminLogout));
+    window.location.href = '/admin/login';
+  });
+};
 
 export default adminSlice.reducer;

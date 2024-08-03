@@ -16,7 +16,7 @@ import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 import ThresholdManagement from './pages/admin/ThresholdManagement';
 import PrivateRoute from './components/PrivateRoute';
 import { checkAdminAuth } from './services/auth';
-
+import './store/adminSlice';
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
