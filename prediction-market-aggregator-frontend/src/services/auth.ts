@@ -17,11 +17,13 @@ export interface AuthResponse {
   };
 }
 
-export const setAuthToken = (token: string) => {
+export const setAuthToken = (token: string | null) => {
   if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('Token set in axios defaults:', axios.defaults.headers.common['Authorization']);
   } else {
     delete axios.defaults.headers.common['Authorization'];
+    console.log('Token removed from axios defaults');
   }
 };
 
@@ -46,8 +48,11 @@ export const unsubscribeUser = async (phoneNumber: string): Promise<{ message: s
 };
 
 export const adminLogin = async (credentials: LoginCredentials): Promise<AuthResponse> => {
+  console.log('adminLogin function called');
   try {
+    console.log('Sending login request to:', `${API_URL}/admin/login`);
     const response = await axios.post<AuthResponse>(`${API_URL}/admin/login`, credentials);
+    console.log('Login response:', response.data);
     const { token, user } = response.data;
     console.log('Received token:', token);
     localStorage.setItem('adminToken', token);
@@ -56,6 +61,10 @@ export const adminLogin = async (credentials: LoginCredentials): Promise<AuthRes
     return { token, user };
   } catch (error) {
     console.error('Login error:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error response:', error.response?.data);
+      console.error('Axios error status:', error.response?.status);
+    }
     throw error;
   }
 };
@@ -74,30 +83,26 @@ const logTokenContent = (token: string) => {
   }
 };
 
-export const checkAdminAuth = async (): Promise<boolean> => {
+export const checkAdminAuth = async (): Promise<{ isAuthenticated: boolean; user: any | null }> => {
   const token = localStorage.getItem('adminToken');
   if (!token) {
     console.log('No token found in localStorage');
-    return false;
+    return { isAuthenticated: false, user: null };
   }
 
-  logTokenContent(token); 
+  console.log('Token found in localStorage:', token);
+  setAuthToken(token);
 
   try {
-    console.log('Sending check-auth request with token:', token);
-    const response = await axios.get<{ isAuthenticated: boolean }>(`${API_URL}/admin/check-auth`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    console.log('Sending check-auth request');
+    const response = await axios.get<{ isAuthenticated: boolean; user: any }>(`${API_URL}/admin/check-auth`);
     console.log('Check-auth response:', response.data);
-    return response.data.isAuthenticated;
+    return response.data;
   } catch (error) {
     console.error('Admin auth check failed:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Error response:', error.response?.data);
-    }
-    return false;
+    localStorage.removeItem('adminToken');
+    setAuthToken('');
+    return { isAuthenticated: false, user: null };
   }
 };
 

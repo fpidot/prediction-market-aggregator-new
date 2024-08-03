@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { checkAdminAuth, refreshAdminToken, adminLogout } from '../services/auth';
+import axios from 'axios';
+import { checkAdminAuth, refreshAdminToken, adminLogout, adminLogin, setAuthToken } from '../services/auth';
 import api from '../services/api';
+import { API_URL } from '../config';
 
 console.log('adminSlice module loaded');
 
@@ -80,26 +82,31 @@ const initialState: AdminState = {
 };
 
 // Async Thunks
-export const login = createAsyncThunk(
-  'admin/login',
-  async ({ credentials, loginFunction }: { credentials: LoginCredentials; loginFunction: (cred: LoginCredentials) => Promise<AuthResponse> }, { rejectWithValue }) => {
-    try {
-      const response = await loginFunction(credentials);
-      return response;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        return rejectWithValue(error.message);
-      }
-      return rejectWithValue('An unknown error occurred');
+export const login = createAsyncThunk<
+  AuthResponse,
+  { credentials: LoginCredentials; loginFunction: typeof adminLogin },
+  { rejectValue: string }
+>('admin/login', async ({ credentials, loginFunction }, { rejectWithValue }) => {
+  console.log('Login thunk called');
+  try {
+    console.log('Login thunk called with credentials:', { ...credentials, password: '[REDACTED]' });
+    const result = await loginFunction(credentials);
+    console.log('Login thunk result:', result);
+    return result;
+  } catch (error) {
+    console.error('Login thunk error:', error);
+    if (error instanceof Error) {
+      return rejectWithValue(error.message);
     }
+    return rejectWithValue('An unknown error occurred');
   }
-);
+});
 
 export const logout = createAsyncThunk(
   'admin/logout',
-  async (logoutFunction: () => void, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      await logoutFunction();
+      adminLogout();
       return null;
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -112,15 +119,20 @@ export const logout = createAsyncThunk(
 
 export const checkAuthentication = createAsyncThunk(
   'admin/checkAuth',
-  async (checkAuthFunction: () => Promise<boolean>, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const isAuthenticated = await checkAuthFunction();
-      return isAuthenticated;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        return rejectWithValue(error.message);
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        return { isAuthenticated: false, user: null };
       }
-      return rejectWithValue('An unknown error occurred');
+      setAuthToken(token);
+      const response = await axios.get<{ isAuthenticated: boolean; user: any }>(`${API_URL}/admin/check-auth`);
+      return response.data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        return rejectWithValue(error.response?.data);
+      }
+      return rejectWithValue('An error occurred during authentication check');
     }
   }
 );
@@ -235,6 +247,7 @@ const adminSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.token = action.payload.token;
+      state.error = null;
     },
     logoutSuccess: (state) => {
       console.log('logoutSuccess reducer called');
@@ -245,39 +258,45 @@ const adminSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(login.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(login.fulfilled, (state, action) => {
-        state.loading = false;
-        state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-      })
-      .addCase(login.rejected, (state, action) => {
-        state.isAuthenticated = false;
-        state.user = null;
-        state.token = null;
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      .addCase(logout.fulfilled, (state) => {
-        state.user = null;
-        state.token = null;
-        state.isAuthenticated = false;
-      })
-      .addCase(checkAuthentication.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(checkAuthentication.fulfilled, (state, action) => {
-        state.isAuthenticated = action.payload;
-        state.loading = false;
-      })
-      .addCase(checkAuthentication.rejected, (state) => {
-        state.isAuthenticated = false;
-        state.loading = false;
-      })
+    .addCase(login.pending, (state) => {
+      console.log('Login pending');
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(login.fulfilled, (state, action) => {
+      console.log('Login fulfilled', action.payload);
+      state.loading = false;
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.error = null;
+    })
+    .addCase(login.rejected, (state, action) => {
+      console.log('Login rejected', action.payload);
+      state.isAuthenticated = false;
+      state.user = null;
+      state.token = null;
+      state.loading = false;
+      state.error = action.payload as string;
+    })
+    .addCase(logout.fulfilled, (state) => {
+      state.isAuthenticated = false;
+      state.user = null;
+      state.token = null;
+    })
+    .addCase(checkAuthentication.pending, (state) => {
+      state.loading = true;
+    })
+    .addCase(checkAuthentication.fulfilled, (state, action) => {
+      state.isAuthenticated = action.payload.isAuthenticated;
+      state.user = action.payload.user;
+      state.loading = false;
+    })
+    .addCase(checkAuthentication.rejected, (state) => {
+      state.isAuthenticated = false;
+      state.user = null;
+      state.loading = false;
+    })
       .addCase(refreshToken.fulfilled, (state, action) => {
         state.token = action.payload;
         state.isAuthenticated = !!action.payload;
@@ -365,7 +384,7 @@ export const { setAuthenticated, loginSuccess, logoutSuccess } = adminSlice.acti
 
 api.onUnauthorized = () => {
   import('../store').then((storeModule) => {
-    storeModule.default.dispatch(logout(adminLogout));
+    storeModule.default.dispatch(logout());
     window.location.href = '/admin/login';
   });
 };

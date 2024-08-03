@@ -9,15 +9,8 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const location = useLocation();
-  const admin = useSelector((state: RootState) => state.admin);
-  if (admin === null || admin === undefined) {
-    console.error('Admin state is null or undefined');
-    return <div>Error: Unable to access admin state</div>;
-  }
-  const isAuthenticated = admin?.isAuthenticated ?? false;
-  const loading = admin?.loading ?? false;
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.admin);
 
-  console.log('PrivateRoute - admin state:', admin);
   console.log('PrivateRoute - isAuthenticated:', isAuthenticated);
   console.log('PrivateRoute - loading:', loading);
 

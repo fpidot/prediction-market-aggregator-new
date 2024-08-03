@@ -11,17 +11,32 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state: RootState) => state.admin);
+  const { loading, error, isAuthenticated } = useSelector((state: RootState) => state.admin);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleSubmit function called');
     try {
+      console.log('Attempting login with:', { email, password: '[REDACTED]' });
       const resultAction = await dispatch(login({ credentials: { email, password }, loginFunction: adminLogin }));
-      // ... rest of the code
+      console.log('Login result action:', resultAction);
+      if (login.fulfilled.match(resultAction)) {
+        console.log('Login successful');
+        console.log('Current Redux State:', JSON.stringify(dispatch(state => state), null, 2));
+      } else if (login.rejected.match(resultAction)) {
+        console.error('Login failed:', resultAction.error);
+      }
     } catch (err) {
       console.error('Login error:', err);
     }
   };
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User is authenticated, navigating to /admin/dashboard');
+      navigate('/admin/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   return (
     <Container component="main" maxWidth="xs">

@@ -4,7 +4,6 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Container } from '@mui/material';
 import { AppDispatch, RootState } from './store';
 import { checkAuthentication } from './store/adminSlice';
-import { refreshAdminToken } from './services/auth';
 import HomePage from './pages/HomePage';
 import SubscribePage from './pages/SubscribePage';
 import Login from './components/admin/Login';
@@ -15,18 +14,20 @@ import ContractManagement from './pages/admin/ContractManagement';
 import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 import ThresholdManagement from './pages/admin/ThresholdManagement';
 import PrivateRoute from './components/PrivateRoute';
+import { setAuthToken } from './services/auth';
 import { checkAdminAuth } from './services/auth';
 import './store/adminSlice';
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const admin = useSelector((state: RootState) => state.admin);
-  const isAuthenticated = admin?.isAuthenticated ?? false;
-  const user = admin?.user ?? null;
-  const token = admin?.token ?? null;
+  const { isAuthenticated, user, token } = useSelector((state: RootState) => state.admin);
 
   useEffect(() => {
-    dispatch(checkAuthentication(checkAdminAuth));
+    const storedToken = localStorage.getItem('adminToken');
+    if (storedToken) {
+      setAuthToken(storedToken);
+      dispatch(checkAuthentication());
+    }
   }, [dispatch]);
 
   useEffect(() => {
@@ -52,7 +53,8 @@ const App: React.FC = () => {
             </PrivateRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="contracts" element={<ContractManagement />} />
           <Route path="subscriptions" element={<SubscriptionManagement />} />
           <Route path="thresholds" element={<ThresholdManagement />} />
